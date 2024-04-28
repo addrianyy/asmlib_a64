@@ -868,8 +868,6 @@ void Assembler::apply_fixups() {
     uint32_t size{};
     uint32_t shift{};
 
-    const auto delta = int64_t(target) - int64_t(fixup.location);
-
     bool skip = false;
 
     switch (fixup.type) {
@@ -893,12 +891,21 @@ void Assembler::apply_fixups() {
 
       case Fixup::Type::Adr:
       case Fixup::Type::Adrp: {
+        uint64_t current = fixup.location;
+        uint64_t target_adjusted = fixup.label;
+
+        // Remove bottom 12 bits for adrp.
+        if (fixup.type == Fixup::Type::Adrp) {
+          current &= ~uint64_t(0xfff);
+          target_adjusted &= ~uint64_t(0xfff);
+        }
+
+        const auto delta = int64_t(target_adjusted) - int64_t(current);
         const auto delta2 = fixup.type == Fixup::Type::Adrp ? (delta >> 12) : delta;
 
         A64_ASM_ASSERT(fits_within_bits_signed(delta2, 21),
                        "cannot fixup: adr/adrpdelta doesn't fit in imm field");
 
-        // TODO: is this correct for adrp?
         const auto delta_masked = uint64_t(delta2 & ((uint32_t(1) << 21) - 1));
 
         instructions[fixup.location] |= (delta_masked & 0b11) << 29;
@@ -912,6 +919,8 @@ void Assembler::apply_fixups() {
         A64_ASM_ASSERT(false, "unreachable code");
       }
     }
+
+    const auto delta = int64_t(target) - int64_t(fixup.location);
 
     if (!skip) {
       A64_ASM_ASSERT(fits_within_bits_signed(delta, size),
