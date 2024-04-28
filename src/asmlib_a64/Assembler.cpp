@@ -21,6 +21,12 @@
 using namespace a64;
 
 template <typename T>
+static std::make_unsigned_t<T> positive_modulo(std::make_signed_t<T> i, std::make_unsigned_t<T> n) {
+  const auto ns = std::make_signed_t<T>(n);
+  return std::make_unsigned_t<T>((i % ns + ns) % ns);
+}
+
+template <typename T>
 static bool fits_within_bits_signed(T value, uint32_t bits) {
   const auto uvalue = uint64_t(value);
   const auto mask = (uint64_t(1) << bits) - 1;
@@ -279,6 +285,46 @@ void Assembler::encode_adr(Reg rd, Label label, uint32_t op) {
 
   emit_fixup(label, op == 0 ? Fixup::Type::Adr : Fixup::Type::Adrp);
   emit((uint32_t(op) << 31) | (uint32_t(0b10000) << 24) | (uint32_t(rdi) << 0));
+}
+
+void Assembler::encode_bitfield_move(Reg rd, Reg rn, uint64_t immr, uint64_t imms, uint32_t opc) {
+  const auto is_64bit = is_register_64bit(rd);
+
+  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn), "register size mismatch");
+  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn), "cannot encode xsp/wsp");
+
+  const uint32_t max_imm_bits = is_64bit ? 6 : 5;
+  A64_ASM_ASSERT(
+    fits_within_bits_unsigned(immr, max_imm_bits) && fits_within_bits_unsigned(imms, max_imm_bits),
+    "immr/imms must be < 32/64 depending on register size");
+
+  const auto rdi = register_index(rd);
+  const auto rni = register_index(rn);
+
+  emit((uint32_t(is_64bit) << 31) | (uint32_t(opc) << 29) | (uint32_t(0b100110) << 23) |
+       (uint32_t(is_64bit) << 22) | (uint32_t(immr) << 16) | (uint32_t(imms) << 10) |
+       (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
+}
+
+void Assembler::encode_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb) {
+  const auto is_64bit = is_register_64bit(rd);
+
+  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm),
+                 "register size mismatch");
+  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm),
+                 "cannot encode xsp/wsp");
+
+  const uint32_t max_imm_bits = is_64bit ? 6 : 5;
+  A64_ASM_ASSERT(fits_within_bits_unsigned(lsb, max_imm_bits),
+                 "imm must be < 32/64 depending on register size");
+
+  const auto rdi = register_index(rd);
+  const auto rni = register_index(rn);
+  const auto rmi = register_index(rm);
+
+  emit((uint32_t(is_64bit) << 31) | (uint32_t(0b100111) << 23) |
+       (uint32_t(is_64bit << 22) | (uint32_t(rmi) << 16) | (uint32_t(lsb) << 10) |
+        (uint32_t(rni) << 5) | (uint32_t(rdi) << 0)));
 }
 
 void Assembler::encode_shift_reg(Reg rd, Reg rn, Reg rm, uint32_t op2) {
@@ -603,6 +649,75 @@ void Assembler::adr(Reg rd, Label label) {
 }
 void Assembler::adrp(Reg rd, Label label) {
   encode_adr(rd, label, 1);
+}
+
+void Assembler::bfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms) {
+  encode_bitfield_move(rd, rn, immr, imms, 0b01);
+}
+void Assembler::sbfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms) {
+  encode_bitfield_move(rd, rn, immr, imms, 0b00);
+}
+void Assembler::ubfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms) {
+  encode_bitfield_move(rd, rn, immr, imms, 0b10);
+}
+
+void Assembler::bfc(Reg rd, uint64_t lsb, uint64_t width) {
+  bfi(rd, to_zero(rd), lsb, width);
+}
+void Assembler::bfi(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+  const auto immr = positive_modulo<uint32_t>(-int32_t(lsb), is_register_64bit(rd) ? 64 : 32);
+  bfm(rd, rn, immr, width - 1);
+}
+void Assembler::bfxil(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+  bfm(rd, rn, lsb, lsb + width - 1);
+}
+void Assembler::sbfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+  const auto immr = positive_modulo<uint32_t>(-int32_t(lsb), is_register_64bit(rd) ? 64 : 32);
+  sbfm(rd, rn, immr, width - 1);
+}
+void Assembler::sbfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+  sbfm(rd, rn, lsb, lsb + width - 1);
+}
+void Assembler::ubfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+  const auto immr = positive_modulo<uint32_t>(-int32_t(lsb), is_register_64bit(rd) ? 64 : 32);
+  ubfm(rd, rn, immr, width - 1);
+}
+void Assembler::ubfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+  ubfm(rd, rn, lsb, lsb + width - 1);
+}
+
+void Assembler::extr(Reg rd, Reg rn, Reg rm, uint64_t lsb) {
+  encode_extr(rd, rn, rm, lsb);
+}
+
+void Assembler::asr(Reg rd, Reg rn, uint64_t shift) {
+  return sbfm(rd, rn, shift, is_register_64bit(rd) ? 63 : 31);
+}
+void Assembler::lsl(Reg rd, Reg rn, uint64_t shift) {
+  const auto immr = positive_modulo<uint32_t>(-int32_t(shift), is_register_64bit(rd) ? 64 : 32);
+  return ubfm(rd, rn, immr, (is_register_64bit(rd) ? 63 : 31) - shift);
+}
+void Assembler::lsr(Reg rd, Reg rn, uint64_t shift) {
+  return ubfm(rd, rn, shift, is_register_64bit(rd) ? 63 : 31);
+}
+void Assembler::ror(Reg rd, Reg rn, uint64_t shift) {
+  return extr(rd, rn, rn, shift);
+}
+
+void Assembler::sxtb(Reg rd, Reg rn) {
+  return sbfm(rd, rn, 0, 7);
+}
+void Assembler::sxth(Reg rd, Reg rn) {
+  return sbfm(rd, rn, 0, 15);
+}
+void Assembler::sxtw(Reg rd, Reg rn) {
+  return sbfm(rd, rn, 0, 31);
+}
+void Assembler::uxtb(Reg rd, Reg rn) {
+  return ubfm(rd, rn, 0, 7);
+}
+void Assembler::uxth(Reg rd, Reg rn) {
+  return ubfm(rd, rn, 0, 15);
 }
 
 void Assembler::add(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {

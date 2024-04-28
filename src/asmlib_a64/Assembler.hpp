@@ -55,8 +55,9 @@ class Assembler {
                               bool invert);
 
   void encode_move_wide(Reg rd, uint64_t imm, uint64_t shift, uint32_t opc);
-
   void encode_adr(Reg rd, Label label, uint32_t op);
+  void encode_bitfield_move(Reg rd, Reg rn, uint64_t immr, uint64_t imms, uint32_t opc);
+  void encode_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb);
 
   void encode_shift_reg(Reg rd, Reg rn, Reg rm, uint32_t op2);
   void encode_mul(Reg rd, Reg rn, Reg rm, Reg ra, uint32_t op);
@@ -119,6 +120,31 @@ class Assembler {
 
   void adr(Reg rd, Label label);
   void adrp(Reg rd, Label label);
+
+  void bfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms);
+  void sbfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms);
+  void ubfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms);
+
+  void bfc(Reg rd, uint64_t lsb, uint64_t width);
+  void bfi(Reg rd, Reg rn, uint64_t lsb, uint64_t width);
+  void bfxil(Reg rd, Reg rn, uint64_t lsb, uint64_t width);
+  void sbfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width);
+  void sbfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width);
+  void ubfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width);
+  void ubfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width);
+
+  void extr(Reg rd, Reg rn, Reg rm, uint64_t lsb);
+
+  void asr(Reg rd, Reg rn, uint64_t shift);
+  void lsl(Reg rd, Reg rn, uint64_t shift);
+  void lsr(Reg rd, Reg rn, uint64_t shift);
+  void ror(Reg rd, Reg rn, uint64_t shift);
+
+  void sxtb(Reg rd, Reg rn);
+  void sxth(Reg rd, Reg rn);
+  void sxtw(Reg rd, Reg rn);
+  void uxtb(Reg rd, Reg rn);
+  void uxth(Reg rd, Reg rn);
 
   void add(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl);
   void adds(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl);
