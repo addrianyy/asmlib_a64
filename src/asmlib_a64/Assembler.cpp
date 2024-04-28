@@ -1163,6 +1163,8 @@ void Assembler::apply_fixups() {
       instructions[fixup.location] |= uint64_t(delta & ((uint32_t(1) << size) - 1)) << shift;
     }
   }
+
+  fixups.clear();
 }
 
 std::span<const uint32_t> Assembler::assembled_instructions() const {
