@@ -734,6 +734,7 @@ Status Assembler::try_movk(Reg rd, uint64_t imm, uint64_t shift) {
 Status Assembler::try_movn(Reg rd, uint64_t imm, uint64_t shift) {
   return encode_move_wide(rd, imm, shift, 0b00);
 }
+
 Status Assembler::try_mov(Reg rd, uint64_t imm) {
   // Try movz.
   {
