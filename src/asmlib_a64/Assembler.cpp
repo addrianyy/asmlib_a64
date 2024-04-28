@@ -734,6 +734,30 @@ Status Assembler::try_movk(Reg rd, uint64_t imm, uint64_t shift) {
 Status Assembler::try_movn(Reg rd, uint64_t imm, uint64_t shift) {
   return encode_move_wide(rd, imm, shift, 0b00);
 }
+Status Assembler::try_mov(Reg rd, uint64_t imm) {
+  // Try movz.
+  {
+    const auto value = imm;
+    const auto shift = (std::countr_zero(value) / 16) * 16;
+    const auto shifted = value >> shift;
+    if (fits_within_bits_unsigned(shifted, 16)) {
+      return try_movz(rd, shifted, shift);
+    }
+  }
+
+  // Invert imm and try movn.
+  {
+    const auto value = ~imm;
+    const auto shift = (std::countr_zero(value) / 16) * 16;
+    const auto shifted = value >> shift;
+    if (fits_within_bits_unsigned(shifted, 16)) {
+      return try_movn(rd, shifted, shift);
+    }
+  }
+
+  // Try using bitmask encoding.
+  return try_orr(rd, to_zero(rd), imm);
+}
 
 Status Assembler::try_adr(Reg rd, Label label) {
   return encode_adr(rd, label, 0);

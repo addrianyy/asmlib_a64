@@ -12,6 +12,7 @@
 [[nodiscard]] Status try_movz(Reg rd, uint64_t imm, uint64_t shift = 0);
 [[nodiscard]] Status try_movk(Reg rd, uint64_t imm, uint64_t shift = 0);
 [[nodiscard]] Status try_movn(Reg rd, uint64_t imm, uint64_t shift = 0);
+[[nodiscard]] Status try_mov(Reg rd, uint64_t imm);
 [[nodiscard]] Status try_adr(Reg rd, Label label);
 [[nodiscard]] Status try_adrp(Reg rd, Label label);
 [[nodiscard]] Status try_bfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms);
@@ -160,6 +161,10 @@ void movk(Reg rd, uint64_t imm, uint64_t shift = 0) {
 void movn(Reg rd, uint64_t imm, uint64_t shift = 0) {
   const auto status = try_movn(rd, imm, shift);
   assert_instruction_encoded("movn", status);
+}
+void mov(Reg rd, uint64_t imm) {
+  const auto status = try_mov(rd, imm);
+  assert_instruction_encoded("mov", status);
 }
 void adr(Reg rd, Label label) {
   const auto status = try_adr(rd, label);

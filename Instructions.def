@@ -23,6 +23,8 @@ tst(Reg rn, uint64_t imm)
   movn
 }
 
+mov(Reg rd, uint64_t imm)
+
 @(Reg rd, Label label) {
   adr
   adrp
