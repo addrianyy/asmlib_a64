@@ -1,5 +1,7 @@
 #include "Assembler.hpp"
 
+#include <bit>
+
 #if __has_include(<base/Error.hpp> )
 #include <base/Error.hpp>
 #define A64_ASM_ASSERT verify
@@ -54,6 +56,75 @@ static uint32_t register_index(Reg r) {
 
   return 0;
 }
+
+struct EncodedBitmaskImmediate {
+  uint8_t n{};
+  uint8_t imms{};
+  uint8_t immr{};
+
+  static bool from_bitmask(uint64_t value, EncodedBitmaskImmediate& encoded) {
+    // https://kddnewton.com/2022/08/11/aarch64-bitmask-immediates.html
+
+    constexpr static auto is_mask = [](uint64_t imm) { return ((imm + 1) & imm) == 0; };
+    constexpr static auto is_shifted_mask = [](uint64_t imm) { return is_mask((imm - 1) | imm); };
+
+    if (value == 0 || value == std::numeric_limits<uint64_t>::max()) {
+      return false;
+    }
+
+    uint64_t imm = value;
+    uint32_t size = 64;
+
+    while (true) {
+      size >>= 1;
+      const auto mask = (uint64_t(1) << size) - 1;
+
+      if ((imm & mask) != ((imm >> size) & mask)) {
+        size <<= 1;
+        break;
+      }
+
+      if (size <= 2) {
+        break;
+      }
+    }
+
+    const auto mask = std::numeric_limits<uint64_t>::max() >> (64 - size);
+
+    imm &= mask;
+
+    uint32_t trailing_ones = 0;
+    uint32_t left_rotations = 0;
+
+    if (is_shifted_mask(imm)) {
+      left_rotations = std::countr_zero(imm);
+      trailing_ones = std::countr_one(imm >> left_rotations);
+    } else {
+      imm |= ~mask;
+
+      if (!is_shifted_mask(~imm)) {
+        return false;
+      }
+
+      const auto leading_ones = std::countl_one(imm);
+
+      left_rotations = 64 - leading_ones;
+      trailing_ones = leading_ones + std::countr_one(imm) - (64 - size);
+    }
+
+    const auto immr = (size - left_rotations) & (size - 1);
+    const auto imms = (~(size - 1) << 1) | (trailing_ones - 1);
+    const auto n = ((imms >> 6) & 1) ^ 1;
+
+    encoded = {
+      .n = uint8_t(n),
+      .imms = uint8_t(imms & 0x3f),
+      .immr = uint8_t(immr & 0x3f),
+    };
+
+    return true;
+  }
+};
 
 static bool is_register_64bit(Reg r) {
   return uint32_t(r) <= uint32_t(Reg::Sp);
@@ -136,21 +207,24 @@ void Assembler::encode_add_sub_shifted(Reg rd,
 
 void Assembler::encode_bitwise_imm(Reg rd, Reg rn, uint64_t imm, uint32_t opc) {
   const auto is_64bit = is_register_64bit(rd);
-  const auto max_imm_bits = 12 + (is_64bit ? 1 : 0);
 
   A64_ASM_ASSERT(is_64bit == is_register_64bit(rn), "register size mismatch");
   A64_ASM_ASSERT(!is_register_zr(rd) && !is_register_zr(rn), "cannot encode xzr/wzr");
-  A64_ASM_ASSERT(fits_within_bits_unsigned(imm, max_imm_bits),
-                 "cannot encode imm12/imm13: number too large");
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
 
-  const uint32_t encoded_imm = 0;
-  A64_ASM_ASSERT(false, "TODO: encoding aarch64 bitmasks is not working yet");
+  EncodedBitmaskImmediate encoded_bitmask;
+  const auto can_encode = EncodedBitmaskImmediate::from_bitmask(imm, encoded_bitmask);
+  A64_ASM_ASSERT(can_encode, "couldn't encode bitmask immediate");
+
+  if (!is_64bit) {
+    A64_ASM_ASSERT(encoded_bitmask.n == 0, "bitmask is 64 bit only");
+  }
 
   emit((uint32_t(is_64bit) << 31) | (uint32_t(opc) << 29) | (uint32_t(0b100100) << 23) |
-       (uint32_t(encoded_imm) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
+       (uint32_t(encoded_bitmask.n) << 22) | (uint32_t(encoded_bitmask.immr) << 16) |
+       (uint32_t(encoded_bitmask.imms) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
 }
 
 void Assembler::encode_bitwise_shifted(Reg rd,
@@ -527,7 +601,6 @@ void Assembler::movn(Reg rd, uint64_t imm, uint64_t shift) {
 void Assembler::adr(Reg rd, Label label) {
   encode_adr(rd, label, 0);
 }
-
 void Assembler::adrp(Reg rd, Label label) {
   encode_adr(rd, label, 1);
 }
@@ -550,7 +623,6 @@ void Assembler::cmp(Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
 void Assembler::cmn(Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
   adds(to_zero(rn), rn, rm, shift_amount, shift);
 }
-
 void Assembler::neg(Reg rd, Reg rm, uint64_t shift_amount, Shift shift) {
   sub(rd, to_zero(rm), rm, shift_amount, shift);
 }
@@ -642,7 +714,7 @@ void Assembler::csel(Reg rd, Reg rn, Reg rm, Condition condition) {
 void Assembler::csinc(Reg rd, Reg rn, Reg rm, Condition condition) {
   encode_cond_select(rd, rn, rm, condition, 0, 1);
 }
-void Assembler::csinc(Reg rd, Condition condition) {
+void Assembler::cset(Reg rd, Condition condition) {
   csinc(rd, to_zero(rd), to_zero(rd), condition);
 }
 

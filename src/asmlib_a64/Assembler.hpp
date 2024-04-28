@@ -160,7 +160,7 @@ class Assembler {
 
   void csel(Reg rd, Reg rn, Reg rm, Condition condition);
   void csinc(Reg rd, Reg rn, Reg rm, Condition condition);
-  void csinc(Reg rd, Condition condition);
+  void cset(Reg rd, Condition condition);
 
   void ldr(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None);
   void ldrh(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None);
