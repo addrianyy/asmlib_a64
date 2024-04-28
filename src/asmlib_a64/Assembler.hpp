@@ -7,23 +7,22 @@
 
 namespace a64 {
 
-class Label {
-  friend class Assembler;
-
-  uint64_t index;
-
-  explicit Label(uint64_t index) : index(index) {}
-};
-
 class Status {
  public:
   enum class Code {
     Success,
-    RegisterNot64bit,
-    AddressRegisterNot64bit,
-    TooLargeUImm,
-    TooLargeSImm,
-    SpNotSupported,
+    UImmTooLarge,
+    SImmTooLarge,
+    SpOperandForbidden,
+    ZrOperandForbidden,
+    Non64bitOperandForbidden,
+    Non64bitAddressForbidden,
+    MemoryOffsetUnaligned,
+    RegistersMismatched,
+    ShiftAmountInvalid,
+    ShiftTypeInvalid,
+    BitmaskInvalid,
+    BitmaskInvalidFor32Bit,
   };
 
  private:
@@ -36,6 +35,14 @@ class Status {
   Code code() const { return code_; }
 
   operator bool() const { return code_ == Code::Success; }
+};
+
+class Label {
+  friend class Assembler;
+
+  uint64_t index;
+
+  explicit Label(uint64_t index) : index(index) {}
 };
 
 class Assembler {

@@ -5,6 +5,7 @@
 #if __has_include(<base/Error.hpp> )
 #include <base/Error.hpp>
 #define A64_ASM_ASSERT verify
+#define A64_ASM_HAS_FORMATTED_ASSERT
 #else
 #include <cstdio>
 #include <cstdlib>
@@ -18,7 +19,7 @@
   } while (0)
 #endif
 
-#define A64_ASM_CHECK(error, check)            \
+#define A64_ASM_CHECK(error_code, check)       \
   do {                                         \
     if (!(check)) {                            \
       return Status{Status::Code::error_code}; \
@@ -26,6 +27,33 @@
   } while (0);
 
 using namespace a64;
+
+static const char* status_code_description(Status::Code code) {
+  using C = Status::Code;
+
+  // clang-format off
+  switch (code) {
+    case C::Success: return "success";
+    case C::UImmTooLarge: return "unsigned immediate is too large";
+    case C::SImmTooLarge: return "signed immediate is too large";
+    case C::SpOperandForbidden: return "xsp/wsp operand is forbidden";
+    case C::ZrOperandForbidden: return "xzr/wzr operand is forbidden";
+    case C::Non64bitOperandForbidden: return "non 64 bit operand is forbidden";
+    case C::Non64bitAddressForbidden: return "non 64 bit address operand is forbidden";
+    case C::MemoryOffsetUnaligned: return "memory offset is unligned";
+    case C::RegistersMismatched: return "registers have mismatched sizes";
+    case C::ShiftAmountInvalid: return "shift amount is invalid";
+    case C::ShiftTypeInvalid: return "shift type is invalid";
+    case C::BitmaskInvalid: return "bitmask is invalid";
+    case C::BitmaskInvalidFor32Bit: return "bitmask is invalid for 32 bit operation";
+    default: {
+      A64_ASM_ASSERT(false, "unknown status code");
+    }
+  }
+  // clang-format on
+
+  return "";
+}
 
 template <typename T>
 static std::make_unsigned_t<T> positive_modulo(std::make_signed_t<T> i, std::make_unsigned_t<T> n) {
@@ -168,8 +196,8 @@ void Assembler::emit_fixup(Label label, Fixup::Type type) {
 Status Assembler::encode_add_sub_imm(Reg rd, Reg rn, uint64_t imm, bool sub_op, bool set_flags) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn), "register size mismatch");
-  A64_ASM_ASSERT(!is_register_zr(rd) && !is_register_zr(rn), "cannot encode xzr/wzr");
+  A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rd) && !is_register_zr(rn));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -178,12 +206,12 @@ Status Assembler::encode_add_sub_imm(Reg rd, Reg rn, uint64_t imm, bool sub_op, 
 
   constexpr auto pow12 = uint64_t(1) << 12;
   if (imm >= pow12) {
-    A64_ASM_ASSERT((imm & (pow12 - 1)) == 0, "cannot encode imm12: lower bits are not 0");
+    A64_ASM_CHECK(UImmTooLarge, (imm & (pow12 - 1)) == 0);
 
     shift = 1;
     imm = imm >> 12;
 
-    A64_ASM_ASSERT(imm < pow12, "cannot encode imm12: number too large");
+    A64_ASM_CHECK(UImmTooLarge, imm < pow12);
   }
 
   emit((uint32_t(is_64bit) << 31) | (uint32_t(sub_op) << 30) | (uint32_t(set_flags) << 29) |
@@ -202,14 +230,13 @@ Status Assembler::encode_add_sub_shifted(Reg rd,
                                          bool set_flags) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm),
-                 "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm),
-                 "cannot encode xsp/wsp");
-  A64_ASM_ASSERT(shift == Shift::Lsl || shift == Shift::Lsr || shift == Shift::Asr,
-                 "invalid shift type");
-  A64_ASM_ASSERT(fits_within_bits_unsigned(shift_amount, 6),
-                 "cannot encode shift amount: number too large");
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_CHECK(SpOperandForbidden,
+                !is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm));
+  A64_ASM_CHECK(ShiftTypeInvalid,
+                shift == Shift::Lsl || shift == Shift::Lsr || shift == Shift::Asr);
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(shift_amount, 6));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -225,18 +252,18 @@ Status Assembler::encode_add_sub_shifted(Reg rd,
 Status Assembler::encode_bitwise_imm(Reg rd, Reg rn, uint64_t imm, uint32_t opc) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn), "register size mismatch");
-  A64_ASM_ASSERT(!is_register_zr(rd) && !is_register_zr(rn), "cannot encode xzr/wzr");
+  A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rd) && !is_register_zr(rn));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
 
   EncodedBitmaskImmediate encoded_bitmask;
   const auto can_encode = EncodedBitmaskImmediate::from_bitmask(imm, encoded_bitmask);
-  A64_ASM_ASSERT(can_encode, "couldn't encode bitmask immediate");
+  A64_ASM_CHECK(BitmaskInvalid, can_encode);
 
   if (!is_64bit) {
-    A64_ASM_ASSERT(encoded_bitmask.n == 0, "bitmask is 64 bit only");
+    A64_ASM_CHECK(BitmaskInvalidFor32Bit, encoded_bitmask.n == 0);
   }
 
   emit((uint32_t(is_64bit) << 31) | (uint32_t(opc) << 29) | (uint32_t(0b100100) << 23) |
@@ -255,12 +282,11 @@ Status Assembler::encode_bitwise_shifted(Reg rd,
                                          bool invert) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm),
-                 "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm),
-                 "cannot encode xsp/wsp");
-  A64_ASM_ASSERT(fits_within_bits_unsigned(shift_amount, 6),
-                 "cannot encode shift amount: number too large");
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_CHECK(SpOperandForbidden,
+                !is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm));
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(shift_amount, 6));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -277,14 +303,14 @@ Status Assembler::encode_move_wide(Reg rd, uint64_t imm, uint64_t shift, uint32_
   const auto is_64bit = is_register_64bit(rd);
   const auto hw = shift / 16;
 
-  A64_ASM_ASSERT(!is_register_sp(rd), "cannot encode xsp/wsp");
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd));
 
-  A64_ASM_ASSERT(hw * 16 == shift && shift <= 48, "shift must be one of: 0, 16, 32, 64");
+  A64_ASM_CHECK(ShiftAmountInvalid, hw * 16 == shift && shift <= 48);
   if (!is_64bit) {
-    A64_ASM_ASSERT(hw <= 1, "cannot shift by more than 16 for 32 bit movX");
+    A64_ASM_CHECK(ShiftAmountInvalid, hw <= 1);
   }
 
-  A64_ASM_ASSERT(fits_within_bits_unsigned(imm, 16), "cannot encode imm16: number too big");
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(imm, 16));
 
   const auto rdi = register_index(rd);
 
@@ -295,8 +321,8 @@ Status Assembler::encode_move_wide(Reg rd, uint64_t imm, uint64_t shift, uint32_
 }
 
 Status Assembler::encode_adr(Reg rd, Label label, uint32_t op) {
-  A64_ASM_ASSERT(is_register_64bit(rd), "adr needs 64 bit register");
-  A64_ASM_ASSERT(!is_register_sp(rd), "cannot encode xsp/wsp");
+  A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rd));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd));
 
   const auto rdi = register_index(rd);
 
@@ -309,13 +335,12 @@ Status Assembler::encode_adr(Reg rd, Label label, uint32_t op) {
 Status Assembler::encode_bitfield_move(Reg rd, Reg rn, uint64_t immr, uint64_t imms, uint32_t opc) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn), "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn), "cannot encode xsp/wsp");
+  A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd) && !is_register_sp(rn));
 
   const uint32_t max_imm_bits = is_64bit ? 6 : 5;
-  A64_ASM_ASSERT(
-    fits_within_bits_unsigned(immr, max_imm_bits) && fits_within_bits_unsigned(imms, max_imm_bits),
-    "immr/imms must be < 32/64 depending on register size");
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(immr, max_imm_bits) &&
+                                fits_within_bits_unsigned(imms, max_imm_bits));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -330,14 +355,13 @@ Status Assembler::encode_bitfield_move(Reg rd, Reg rn, uint64_t immr, uint64_t i
 Status Assembler::encode_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm),
-                 "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm),
-                 "cannot encode xsp/wsp");
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_CHECK(SpOperandForbidden,
+                !is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm));
 
   const uint32_t max_imm_bits = is_64bit ? 6 : 5;
-  A64_ASM_ASSERT(fits_within_bits_unsigned(lsb, max_imm_bits),
-                 "imm must be < 32/64 depending on register size");
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(lsb, max_imm_bits));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -353,10 +377,10 @@ Status Assembler::encode_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb) {
 Status Assembler::encode_shift_reg(Reg rd, Reg rn, Reg rm, uint32_t op2) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm),
-                 "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm),
-                 "cannot encode xsp/wsp");
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_CHECK(SpOperandForbidden,
+                !is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -372,12 +396,11 @@ Status Assembler::encode_shift_reg(Reg rd, Reg rn, Reg rm, uint32_t op2) {
 Status Assembler::encode_mul(Reg rd, Reg rn, Reg rm, Reg ra, uint32_t op) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm) &&
-                   is_64bit == is_register_64bit(ra),
-                 "register size mismatch");
-  A64_ASM_ASSERT(
-    !is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm) && !is_register_sp(ra),
-    "cannot encode xsp/wsp");
+  A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn) &&
+                                       is_64bit == is_register_64bit(rm) &&
+                                       is_64bit == is_register_64bit(ra));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd) && !is_register_sp(rn) &&
+                                      !is_register_sp(rm) && !is_register_sp(ra));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -393,10 +416,10 @@ Status Assembler::encode_mul(Reg rd, Reg rn, Reg rm, Reg ra, uint32_t op) {
 Status Assembler::encode_div(Reg rd, Reg rn, Reg rm, uint32_t op) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm),
-                 "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm),
-                 "cannot encode xsp/wsp");
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_CHECK(SpOperandForbidden,
+                !is_register_sp(rd) && !is_register_sp(rn) && !is_register_sp(rm));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -412,8 +435,8 @@ Status Assembler::encode_div(Reg rd, Reg rn, Reg rm, uint32_t op) {
 Status Assembler::encode_bit_scan(Reg rd, Reg rn, uint32_t op) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn), "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn), "cannot encode xsp/wsp");
+  A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd) && !is_register_sp(rn));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -432,9 +455,9 @@ Status Assembler::encode_cond_select(Reg rd,
                                      uint32_t o2) {
   const auto is_64bit = is_register_64bit(rd);
 
-  A64_ASM_ASSERT(is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm),
-                 "register size mismatch");
-  A64_ASM_ASSERT(!is_register_sp(rd) && !is_register_sp(rn), "cannot encode xsp/wsp");
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd) && !is_register_sp(rn));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -452,10 +475,10 @@ Status Assembler::encode_mem_imm_unscaled(Reg rt,
                                           int64_t imm,
                                           uint32_t size,
                                           uint32_t opc) {
-  A64_ASM_ASSERT(is_register_64bit(rn), "address register must be 64 bit");
-  A64_ASM_ASSERT(!is_register_zr(rn), "cannot encode xzr/wzr as address");
-  A64_ASM_ASSERT(!is_register_sp(rt), "cannot encode xsp/esp as value");
-  A64_ASM_ASSERT(fits_within_bits_signed(imm, 9), "cannot encode imm9: number too large");
+  A64_ASM_CHECK(Non64bitAddressForbidden, is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
+  A64_ASM_CHECK(SImmTooLarge, fits_within_bits_signed(imm, 9));
 
   const auto rti = register_index(rt);
   const auto rni = register_index(rn);
@@ -471,10 +494,10 @@ Status Assembler::encode_mem_imm_unsigned_offset(Reg rt,
                                                  uint64_t imm,
                                                  uint32_t size,
                                                  uint32_t opc) {
-  A64_ASM_ASSERT(is_register_64bit(rn), "address register must be 64 bit");
-  A64_ASM_ASSERT(!is_register_zr(rn), "cannot encode xzr/wzr as address");
-  A64_ASM_ASSERT(!is_register_sp(rt), "cannot encode xsp/esp as value");
-  A64_ASM_ASSERT(fits_within_bits_unsigned(imm, 12), "cannot encode imm12: number too large");
+  A64_ASM_CHECK(Non64bitAddressForbidden, is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(imm, 12));
 
   const auto rti = register_index(rt);
   const auto rni = register_index(rn);
@@ -491,10 +514,10 @@ Status Assembler::encode_mem_imm_writeback(Reg rt,
                                            uint32_t size,
                                            uint32_t opc,
                                            bool post_index) {
-  A64_ASM_ASSERT(is_register_64bit(rn), "address register must be 64 bit");
-  A64_ASM_ASSERT(!is_register_zr(rn), "cannot encode xzr/wzr as address");
-  A64_ASM_ASSERT(!is_register_sp(rt), "cannot encode xsp/esp as value");
-  A64_ASM_ASSERT(fits_within_bits_signed(imm, 9), "cannot encode imm12: number too large");
+  A64_ASM_CHECK(Non64bitAddressForbidden, is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
+  A64_ASM_CHECK(SImmTooLarge, fits_within_bits_signed(imm, 9));
 
   const auto rti = register_index(rt);
   const auto rni = register_index(rn);
@@ -537,10 +560,9 @@ Status Assembler::encode_mem_reg(Reg rt,
                                  Extend extend,
                                  uint32_t size,
                                  uint32_t opc) {
-  A64_ASM_ASSERT(is_register_64bit(rn), "address register must be 64 bit");
-  A64_ASM_ASSERT(!is_register_zr(rn), "cannot encode xzr/wzr as address");
-  A64_ASM_ASSERT(!is_register_sp(rt) && !is_register_sp(rn),
-                 "cannot encode xsp/wsp as value or index");
+  A64_ASM_CHECK(Non64bitAddressForbidden, is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt) && !is_register_sp(rn));
 
   const auto rti = register_index(rt);
   const auto rni = register_index(rn);
@@ -557,7 +579,7 @@ Status Assembler::encode_mem_reg(Reg rt,
 }
 
 Status Assembler::encode_mem_label(Reg rt, Label label, uint32_t opc) {
-  A64_ASM_ASSERT(!is_register_sp(rt), "cannot encode sp as value");
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
 
   const auto rti = register_index(rt);
 
@@ -574,10 +596,10 @@ Status Assembler::encode_mem_pair(Reg rt1,
                                   Writeback writeback,
                                   uint32_t opc,
                                   uint32_t l) {
-  A64_ASM_ASSERT(is_register_64bit(rn), "address register must be 64 bit");
-  A64_ASM_ASSERT(!is_register_zr(rn), "cannot encode xzr/wzr as address");
-  A64_ASM_ASSERT(!is_register_sp(rt1) && !is_register_sp(rt2), "cannot encode xsp/esp as value");
-  A64_ASM_ASSERT(is_register_64bit(rt1) == is_register_64bit(rt2), "register size mismatch");
+  A64_ASM_CHECK(Non64bitAddressForbidden, is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt1) && !is_register_sp(rt2));
+  A64_ASM_CHECK(RegistersMismatched, is_register_64bit(rt1) == is_register_64bit(rt2));
 
   const auto rt1i = register_index(rt1);
   const auto rt2i = register_index(rt2);
@@ -599,8 +621,8 @@ Status Assembler::encode_mem_pair(Reg rt1,
   const uint32_t scale = opc == 0b10 ? 3 : 2;
 
   const auto scaled_imm = imm >> scale;
-  A64_ASM_ASSERT((scaled_imm << scale) == imm, "cannot encode mempair imm: not aligned");
-  A64_ASM_ASSERT(fits_within_bits_signed(scaled_imm, 7), "cannot encode imm7: number too large");
+  A64_ASM_CHECK(MemoryOffsetUnaligned, (scaled_imm << scale) == imm);
+  A64_ASM_CHECK(SImmTooLarge, fits_within_bits_signed(scaled_imm, 7));
 
   emit((uint32_t(opc) << 30) | (uint32_t(0b10100) << 25) | (uint32_t(writeback_c) << 23) |
        (uint32_t(l) << 22) | ((uint32_t(scaled_imm) & 0b1111111) << 15) | (uint32_t(rt2i) << 10) |
@@ -612,7 +634,7 @@ Status Assembler::encode_mem_pair(Reg rt1,
 Status Assembler::encode_cb(Reg rt, Label label, uint32_t op) {
   const auto is_64bit = is_register_64bit(rt);
 
-  A64_ASM_ASSERT(!is_register_sp(rt), "cannot encode xsp/esp");
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
 
   const auto rti = register_index(rt);
 
@@ -626,8 +648,8 @@ Status Assembler::encode_cb(Reg rt, Label label, uint32_t op) {
 Status Assembler::encode_tb(Reg rt, uint64_t bit, Label label, uint32_t op) {
   const auto is_64bit = is_register_64bit(rt);
 
-  A64_ASM_ASSERT(!is_register_sp(rt), "cannot encode xsp/esp");
-  A64_ASM_ASSERT(bit < (is_64bit ? 64 : 32), "cannot encode bit imm: too large number");
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
+  A64_ASM_CHECK(UImmTooLarge, bit < (is_64bit ? 64 : 32));
 
   const auto rti = register_index(rt);
 
@@ -641,18 +663,31 @@ Status Assembler::encode_tb(Reg rt, uint64_t bit, Label label, uint32_t op) {
 Status Assembler::encode_b_imm(Label label, bool op) {
   emit_fixup(label, Fixup::Type::B);
   emit((uint32_t(op) << 31) | (uint32_t(0b00101) << 26));
+
   return {};
 }
 
 Status Assembler::encode_br_indirect(Reg rn, uint32_t op) {
-  A64_ASM_ASSERT(is_register_64bit(rn), "indirect branches must use 64 bit registers");
-  A64_ASM_ASSERT(!is_register_sp(rn), "cannot encode xsp/esp");
+  A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rn));
 
   const auto rni = register_index(rn);
 
   emit((uint32_t(0b1101011000011111000000) << 10) | (uint32_t(op) << 21) | (uint32_t(rni) << 5));
 
   return {};
+}
+
+void Assembler::assert_instruction_encoded(const char* instruction_name, Status status) {
+  if (!status) {
+    const auto description = status_code_description(status.code());
+
+#ifdef A64_ASM_HAS_FORMATTED_ASSERT
+    A64_ASM_ASSERT(false, "encoding `{}` has failed: {}", instruction_name, description);
+#else
+    A64_ASM_ASSERT(false, description);
+#endif
+  }
 }
 
 Status Assembler::try_add(Reg rd, Reg rn, uint64_t imm) {
@@ -899,9 +934,7 @@ Status Assembler::try_ldrb(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, 0b00, 0b01);
 }
 Status Assembler::try_ldrsw(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
-  if (!is_register_64bit(rt)) {
-    return Status{Status::Code::RegisterNot64bit};
-  }
+  A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt));
   return encode_mem_imm(rt, rn, imm, writeback, 0b10, 0b10);
 }
 Status Assembler::try_ldrsh(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
@@ -931,9 +964,7 @@ Status Assembler::try_ldrb(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b00, 0b01);
 }
 Status Assembler::try_ldrsw(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
-  if (!is_register_64bit(rt)) {
-    return Status{Status::Code::RegisterNot64bit};
-  }
+  A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt));
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b10, 0b10);
 }
 Status Assembler::try_ldrsh(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
@@ -957,9 +988,7 @@ Status Assembler::try_ldr(Reg rt, Label label) {
   return encode_mem_label(rt, label, is_register_64bit(rt) ? 0b01 : 0b00);
 }
 Status Assembler::try_ldrsw(Reg rt, Label label) {
-  if (!is_register_64bit(rt)) {
-    return Status{Status::Code::RegisterNot64bit};
-  }
+  A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt));
   return encode_mem_label(rt, label, 0b10);
 }
 
@@ -967,9 +996,7 @@ Status Assembler::try_ldp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback write
   return encode_mem_pair(rt1, rt2, rn, imm, writeback, is_register_64bit(rt1) ? 0b10 : 0b00, 1);
 }
 Status Assembler::try_ldpsw(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback) {
-  if (!is_register_64bit(rt1)) {
-    return Status{Status::Code::RegisterNot64bit};
-  }
+  A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt1));
   return encode_mem_pair(rt1, rt2, rn, imm, writeback, 0b01, 1);
 }
 Status Assembler::try_stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback) {
@@ -1032,7 +1059,7 @@ Label Assembler::allocate_label() {
 
 void Assembler::insert_label(Label label) {
   A64_ASM_ASSERT(labels[label.index] == std::numeric_limits<uint64_t>::max(),
-                 "cannot insert the same label more than once");
+                 "label was already inserted into the instruction stream");
   labels[label.index] = instructions.size();
 }
 
@@ -1042,12 +1069,11 @@ Label Assembler::insert_label() {
   return l;
 }
 
-void Assembler::assert_instruction_encoded(const char* instruction_name, Status status) {}
-
 void Assembler::apply_fixups() {
   for (const auto& fixup : fixups) {
     const auto target = labels[fixup.label];
-    A64_ASM_ASSERT(target != std::numeric_limits<uint64_t>::max(), "label cannot be resolved");
+    A64_ASM_ASSERT(target != std::numeric_limits<uint64_t>::max(),
+                   "fixup label was not inserted into the instruction stream");
 
     uint32_t size{};
     uint32_t shift{};
@@ -1088,7 +1114,7 @@ void Assembler::apply_fixups() {
         const auto delta2 = fixup.type == Fixup::Type::Adrp ? (delta >> 12) : delta;
 
         A64_ASM_ASSERT(fits_within_bits_signed(delta2, 21),
-                       "cannot fixup: adr/adrpdelta doesn't fit in imm field");
+                       "cannot process fixup: adr/adrp delta doesn't fit in the imm field");
 
         const auto delta_masked = uint64_t(delta2 & ((uint32_t(1) << 21) - 1));
 
@@ -1100,7 +1126,7 @@ void Assembler::apply_fixups() {
       }
 
       default: {
-        A64_ASM_ASSERT(false, "unreachable code");
+        A64_ASM_ASSERT(false, "unknown fixup type");
       }
     }
 
@@ -1108,7 +1134,7 @@ void Assembler::apply_fixups() {
 
     if (!skip) {
       A64_ASM_ASSERT(fits_within_bits_signed(delta, size),
-                     "cannot fixup: delta doesn't fit in imm field");
+                     "cannot process fixup: delta doesn't fit in the imm field");
       instructions[fixup.location] |= uint64_t(delta & ((uint32_t(1) << size) - 1)) << shift;
     }
   }
