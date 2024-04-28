@@ -1,6 +1,7 @@
 #pragma once
 
 namespace a64 {
+
 enum class Reg {
   X0,
   X1,

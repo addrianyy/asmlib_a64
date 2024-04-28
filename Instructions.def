@@ -1,0 +1,134 @@
+add(Reg rd, Reg rn, uint64_t imm)
+adds(Reg rd, Reg rn, uint64_t imm)
+sub(Reg rd, Reg rn, uint64_t imm)
+subs(Reg rd, Reg rn, uint64_t imm)
+cmp(Reg rn, uint64_t imm)
+cmn(Reg rn, uint64_t imm)
+
+and_(Reg rd, Reg rn, uint64_t imm)
+ands(Reg rd, Reg rn, uint64_t imm)
+eor(Reg rd, Reg rn, uint64_t imm)
+orr(Reg rd, Reg rn, uint64_t imm)
+tst(Reg rn, uint64_t imm)
+
+movz(Reg rd, uint64_t imm, uint64_t shift = 0)
+movk(Reg rd, uint64_t imm, uint64_t shift = 0)
+movn(Reg rd, uint64_t imm, uint64_t shift = 0)
+
+adr(Reg rd, Label label)
+adrp(Reg rd, Label label)
+
+bfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms)
+sbfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms)
+ubfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms)
+
+bfc(Reg rd, uint64_t lsb, uint64_t width)
+bfi(Reg rd, Reg rn, uint64_t lsb, uint64_t width)
+bfxil(Reg rd, Reg rn, uint64_t lsb, uint64_t width)
+sbfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width)
+sbfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width)
+ubfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width)
+ubfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width)
+
+extr(Reg rd, Reg rn, Reg rm, uint64_t lsb)
+
+asr(Reg rd, Reg rn, uint64_t shift)
+lsl(Reg rd, Reg rn, uint64_t shift)
+lsr(Reg rd, Reg rn, uint64_t shift)
+ror(Reg rd, Reg rn, uint64_t shift)
+
+sxtb(Reg rd, Reg rn)
+sxth(Reg rd, Reg rn)
+sxtw(Reg rd, Reg rn)
+uxtb(Reg rd, Reg rn)
+uxth(Reg rd, Reg rn)
+
+add(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+adds(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+sub(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+subs(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+cmp(Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+cmn(Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+neg(Reg rd, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+negs(Reg rd, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+
+and_(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+ands(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+bic(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+bics(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+eor(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+eon(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+orr(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+orn(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+mvn(Reg rd, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+tst(Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+
+mov(Reg rd, Reg rn)
+
+asr(Reg rd, Reg rn, Reg rm)
+lsl(Reg rd, Reg rn, Reg rm)
+lsr(Reg rd, Reg rn, Reg rm)
+ror(Reg rd, Reg rn, Reg rm)
+
+madd(Reg rd, Reg rn, Reg rm, Reg ra)
+msub(Reg rd, Reg rn, Reg rm, Reg ra)
+mneg(Reg rd, Reg rn, Reg rm)
+mul(Reg rd, Reg rn, Reg rm)
+
+sdiv(Reg rd, Reg rn, Reg rm)
+udiv(Reg rd, Reg rn, Reg rm)
+
+cls(Reg rd, Reg rn)
+clz(Reg rd, Reg rn)
+
+csel(Reg rd, Reg rn, Reg rm, Condition condition)
+csinc(Reg rd, Reg rn, Reg rm, Condition condition)
+cset(Reg rd, Condition condition)
+
+ldr(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+ldrh(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+ldrb(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+ldrsw(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+ldrsh(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+ldrsb(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+
+str(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+strh(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+strb(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+
+@(Reg rt, Reg rn, Reg rm, Scale scale = Scale::None, Extend extend = Extend::Lsl) {
+  ldr
+  ldrh
+  ldrb
+  ldrsw
+  ldrsh
+  ldrsb
+}
+
+str(Reg rt, Reg rn, Reg rm, Scale scale = Scale::None, Extend extend = Extend::Lsl)
+strh(Reg rt, Reg rn, Reg rm, Scale scale = Scale::None, Extend extend = Extend::Lsl)
+strb(Reg rt, Reg rn, Reg rm, Scale scale = Scale::None, Extend extend = Extend::Lsl)
+
+ldr(Reg rt, Label label)
+ldrsw(Reg rt, Label label)
+
+ldp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+ldpsw(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+
+stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+
+b(Condition condition, Label label)
+cbz(Reg rt, Label label)
+cbnz(Reg rt, Label label)
+tbz(Reg rt, uint64_t bit, Label label)
+tbnz(Reg rt, uint64_t bit, Label label)
+
+b(Label label)
+bl(Label label)
+
+blr(Reg rn)
+br(Reg rn)
+ret(Reg rn)
+
+svc(uint16_t imm)
+brk(uint16_t imm)
