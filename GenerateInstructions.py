@@ -56,6 +56,7 @@ class GlobalProcessor:
         proto = Prototype(arguments=argument_list)
 
         if match.group(3) is not None:
+            assert name == "@"
             return PrototypeBlockProcessor(proto)
         else:
             processed_instructions.append(Instruction(name=name, prototype=proto))
