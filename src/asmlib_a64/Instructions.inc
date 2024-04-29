@@ -91,6 +91,12 @@
 [[nodiscard]] Status try_ldrsw(Reg rt, Label label);
 [[nodiscard]] Status try_ldp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None);
 [[nodiscard]] Status try_ldpsw(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None);
+[[nodiscard]] Status try_ldar(Reg rt, Reg rn);
+[[nodiscard]] Status try_ldarb(Reg rt, Reg rn);
+[[nodiscard]] Status try_ldarh(Reg rt, Reg rn);
+[[nodiscard]] Status try_stlr(Reg rt, Reg rn);
+[[nodiscard]] Status try_stlrb(Reg rt, Reg rn);
+[[nodiscard]] Status try_stlrh(Reg rt, Reg rn);
 [[nodiscard]] Status try_stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None);
 [[nodiscard]] Status try_b(Condition condition, Label label);
 [[nodiscard]] Status try_cbz(Reg rt, Label label);
@@ -477,6 +483,30 @@ void ldp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback:
 void ldpsw(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None) {
   const auto status = try_ldpsw(rt1, rt2, rn, imm, writeback);
   assert_instruction_encoded("ldpsw", status);
+}
+void ldar(Reg rt, Reg rn) {
+  const auto status = try_ldar(rt, rn);
+  assert_instruction_encoded("ldar", status);
+}
+void ldarb(Reg rt, Reg rn) {
+  const auto status = try_ldarb(rt, rn);
+  assert_instruction_encoded("ldarb", status);
+}
+void ldarh(Reg rt, Reg rn) {
+  const auto status = try_ldarh(rt, rn);
+  assert_instruction_encoded("ldarh", status);
+}
+void stlr(Reg rt, Reg rn) {
+  const auto status = try_stlr(rt, rn);
+  assert_instruction_encoded("stlr", status);
+}
+void stlrb(Reg rt, Reg rn) {
+  const auto status = try_stlrb(rt, rn);
+  assert_instruction_encoded("stlrb", status);
+}
+void stlrh(Reg rt, Reg rn) {
+  const auto status = try_stlrh(rt, rn);
+  assert_instruction_encoded("stlrh", status);
 }
 void stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None) {
   const auto status = try_stp(rt1, rt2, rn, imm, writeback);

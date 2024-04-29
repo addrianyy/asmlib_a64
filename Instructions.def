@@ -163,6 +163,15 @@ cset(Reg rd, Condition condition)
   ldpsw
 }
 
+@(Reg rt, Reg rn) {
+  ldar
+  ldarb
+  ldarh
+  stlr
+  stlrb
+  stlrh
+}
+
 stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
 
 b(Condition condition, Label label)

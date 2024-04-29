@@ -631,6 +631,20 @@ Status Assembler::encode_mem_pair(Reg rt1,
   return {};
 }
 
+Status Assembler::encode_mem_acq_rel(Reg rt, Reg rn, uint32_t size, uint32_t l) {
+  A64_ASM_CHECK(Non64bitAddressForbidden, is_register_64bit(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
+
+  const auto rti = register_index(rt);
+  const auto rni = register_index(rn);
+
+  emit((uint32_t(size) << 30) | (uint32_t(0b0010001) << 23) | (uint32_t(l) << 22) |
+       (uint32_t(0b11111'1'11111) << 10) | (uint32_t(rni) << 5) | (uint32_t(rti) << 0));
+
+  return {};
+}
+
 Status Assembler::encode_cb(Reg rt, Label label, uint32_t op) {
   const auto is_64bit = is_register_64bit(rt);
 
@@ -1026,6 +1040,25 @@ Status Assembler::try_ldpsw(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback wri
 }
 Status Assembler::try_stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback) {
   return encode_mem_pair(rt1, rt2, rn, imm, writeback, is_register_64bit(rt1) ? 0b10 : 0b00, 0);
+}
+
+Status Assembler::try_ldar(Reg rt, Reg rn) {
+  return encode_mem_acq_rel(rt, rn, is_register_64bit(rt) ? 0b11 : 0b10, 1);
+}
+Status Assembler::try_ldarh(Reg rt, Reg rn) {
+  return encode_mem_acq_rel(rt, rn, 0b01, 1);
+}
+Status Assembler::try_ldarb(Reg rt, Reg rn) {
+  return encode_mem_acq_rel(rt, rn, 0b00, 1);
+}
+Status Assembler::try_stlr(Reg rt, Reg rn) {
+  return encode_mem_acq_rel(rt, rn, is_register_64bit(rt) ? 0b11 : 0b10, 0);
+}
+Status Assembler::try_stlrh(Reg rt, Reg rn) {
+  return encode_mem_acq_rel(rt, rn, 0b01, 0);
+}
+Status Assembler::try_stlrb(Reg rt, Reg rn) {
+  return encode_mem_acq_rel(rt, rn, 0b00, 0);
 }
 
 Status Assembler::try_b(Condition condition, Label label) {

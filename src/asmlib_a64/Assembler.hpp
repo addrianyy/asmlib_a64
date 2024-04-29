@@ -119,6 +119,7 @@ class Assembler {
                          Writeback writeback,
                          uint32_t opc,
                          uint32_t l);
+  Status encode_mem_acq_rel(Reg rt, Reg rn, uint32_t size, uint32_t l);
 
   Status encode_cb(Reg rt, Label label, uint32_t op);
   Status encode_tb(Reg rt, uint64_t bit, Label label, uint32_t op);
