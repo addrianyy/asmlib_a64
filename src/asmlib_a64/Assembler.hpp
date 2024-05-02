@@ -155,6 +155,9 @@ class Assembler {
  public:
 #include "Instructions.inc"
 
+  uintptr_t instruction_offset() const { return instructions.size(); }
+  uintptr_t byte_offset() const { return instruction_offset() * sizeof(uint32_t); }
+
   Label allocate_label();
   void insert_label(Label label);
   Label insert_label();
