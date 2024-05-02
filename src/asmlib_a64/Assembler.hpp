@@ -163,6 +163,8 @@ class Assembler {
   Label insert_label();
 
   std::span<const uint32_t> assembled_instructions();
+
+  void clear();
 };
 
 }  // namespace a64

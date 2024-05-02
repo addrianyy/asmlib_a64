@@ -723,6 +723,9 @@ void Assembler::assert_instruction_encoded(const char* instruction_name, Status 
 
 void Assembler::apply_fixups() {
   for (const auto& fixup : fixups) {
+    A64_ASM_ASSERT(fixup.label != std::numeric_limits<uint64_t>::max(),
+                   "used an uninitialized label");
+
     const auto target = labels[fixup.label];
     A64_ASM_ASSERT(target != std::numeric_limits<uint64_t>::max(),
                    "fixup label was not inserted into the instruction stream");
@@ -1358,4 +1361,10 @@ Label Assembler::insert_label() {
 std::span<const uint32_t> Assembler::assembled_instructions() {
   apply_fixups();
   return instructions;
+}
+
+void Assembler::clear() {
+  instructions.clear();
+  labels.clear();
+  fixups.clear();
 }
