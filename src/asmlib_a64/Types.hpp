@@ -2,7 +2,7 @@
 
 namespace a64 {
 
-enum class Reg {
+enum class Register {
   X0,
   X1,
   X2,

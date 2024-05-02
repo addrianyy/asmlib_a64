@@ -1,22 +1,20 @@
 # AArch64 assembler library in C++20
 
 ```cpp
-using a64::Reg;
+using a64::Register;
 
 a64::Assembler as;
 
-as.clz(Reg::X1, Reg::X2);
-as.mul(Reg::W4, Reg::W7, Reg::Wzr);
+as.clz(Register::X1, Register::X2);
+as.mul(Register::W4, Register::W7, Register::Wzr);
 
 const auto label = as.insert_label();
 
-as.sub(Reg::X2, Reg::X2, 2);
-as.cbnz(Reg::X2, label);
+as.sub(Register::X2, Register::X2, 2);
+as.cbnz(Register::X2, label);
 
-as.str(Reg::X3, Reg::X5, 16);
-as.str(Reg::X8, Reg::X5, 16, a64::Writeback::Post);
-
-as.apply_fixups();
+as.str(Register::X3, Register::X5, 16);
+as.str(Register::X8, Register::X5, 16, a64::Writeback::Post);
 
 for (const auto inst : as.assembled_instructions()) {
     const auto reversed = (((inst >> 24) & 0xff) << 0) | (((inst >> 16) & 0xff) << 8) |

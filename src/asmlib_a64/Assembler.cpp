@@ -78,20 +78,20 @@ static bool fits_within_bits_unsigned(T value, uint32_t bits) {
   return uint64_t(value) < (uint64_t(1) << bits);
 }
 
-static uint32_t register_index(Reg r) {
+static uint32_t register_index(Register r) {
   const auto ri = uint32_t(r);
 
-  if (ri <= uint32_t(Reg::Xzr)) {
-    return ri - uint32_t(Reg::X0);
+  if (ri <= uint32_t(Register::Xzr)) {
+    return ri - uint32_t(Register::X0);
   }
-  if (ri == uint32_t(Reg::Sp)) {
+  if (ri == uint32_t(Register::Sp)) {
     return 31;
   }
 
-  if (ri <= uint32_t(Reg::Wzr)) {
-    return ri - uint32_t(Reg::W0);
+  if (ri <= uint32_t(Register::Wzr)) {
+    return ri - uint32_t(Register::W0);
   }
-  if (ri == uint32_t(Reg::Wsp)) {
+  if (ri == uint32_t(Register::Wsp)) {
     return 31;
   }
 
@@ -167,18 +167,18 @@ struct EncodedBitmaskImmediate {
   }
 };
 
-static bool is_register_64bit(Reg r) {
-  return uint32_t(r) <= uint32_t(Reg::Sp);
+static bool is_register_64bit(Register r) {
+  return uint32_t(r) <= uint32_t(Register::Sp);
 }
-static bool is_register_sp(Reg r) {
-  return r == Reg::Sp || r == Reg::Wsp;
+static bool is_register_sp(Register r) {
+  return r == Register::Sp || r == Register::Wsp;
 }
-static bool is_register_zr(Reg r) {
-  return r == Reg::Xzr || r == Reg::Wzr;
+static bool is_register_zr(Register r) {
+  return r == Register::Xzr || r == Register::Wzr;
 }
 
-static Reg to_zero(Reg r) {
-  return is_register_64bit(r) ? Reg::Xzr : Reg::Wzr;
+static Register to_zero(Register r) {
+  return is_register_64bit(r) ? Register::Xzr : Register::Wzr;
 }
 
 void Assembler::emit(uint32_t instruction) {
@@ -193,7 +193,11 @@ void Assembler::emit_fixup(Label label, Fixup::Type type) {
   });
 }
 
-Status Assembler::encode_add_sub_imm(Reg rd, Reg rn, uint64_t imm, bool sub_op, bool set_flags) {
+Status Assembler::encode_add_sub_imm(Register rd,
+                                     Register rn,
+                                     uint64_t imm,
+                                     bool sub_op,
+                                     bool set_flags) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
@@ -221,9 +225,9 @@ Status Assembler::encode_add_sub_imm(Reg rd, Reg rn, uint64_t imm, bool sub_op, 
   return {};
 }
 
-Status Assembler::encode_add_sub_shifted(Reg rd,
-                                         Reg rn,
-                                         Reg rm,
+Status Assembler::encode_add_sub_shifted(Register rd,
+                                         Register rn,
+                                         Register rm,
                                          uint32_t shift_amount,
                                          Shift shift,
                                          bool sub_op,
@@ -249,7 +253,7 @@ Status Assembler::encode_add_sub_shifted(Reg rd,
   return {};
 }
 
-Status Assembler::encode_bitwise_imm(Reg rd, Reg rn, uint64_t imm, uint32_t opc) {
+Status Assembler::encode_bitwise_imm(Register rd, Register rn, uint64_t imm, uint32_t opc) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
@@ -273,9 +277,9 @@ Status Assembler::encode_bitwise_imm(Reg rd, Reg rn, uint64_t imm, uint32_t opc)
   return {};
 }
 
-Status Assembler::encode_bitwise_shifted(Reg rd,
-                                         Reg rn,
-                                         Reg rm,
+Status Assembler::encode_bitwise_shifted(Register rd,
+                                         Register rn,
+                                         Register rm,
                                          uint32_t shift_amount,
                                          Shift shift,
                                          uint32_t opc,
@@ -299,7 +303,7 @@ Status Assembler::encode_bitwise_shifted(Reg rd,
   return {};
 }
 
-Status Assembler::encode_move_wide(Reg rd, uint64_t imm, uint64_t shift, uint32_t opc) {
+Status Assembler::encode_move_wide(Register rd, uint64_t imm, uint64_t shift, uint32_t opc) {
   const auto is_64bit = is_register_64bit(rd);
   const auto hw = shift / 16;
 
@@ -320,7 +324,7 @@ Status Assembler::encode_move_wide(Reg rd, uint64_t imm, uint64_t shift, uint32_
   return {};
 }
 
-Status Assembler::encode_adr(Reg rd, Label label, uint32_t op) {
+Status Assembler::encode_adr(Register rd, Label label, uint32_t op) {
   A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rd));
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd));
 
@@ -332,7 +336,11 @@ Status Assembler::encode_adr(Reg rd, Label label, uint32_t op) {
   return {};
 }
 
-Status Assembler::encode_bitfield_move(Reg rd, Reg rn, uint64_t immr, uint64_t imms, uint32_t opc) {
+Status Assembler::encode_bitfield_move(Register rd,
+                                       Register rn,
+                                       uint64_t immr,
+                                       uint64_t imms,
+                                       uint32_t opc) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
@@ -352,7 +360,7 @@ Status Assembler::encode_bitfield_move(Reg rd, Reg rn, uint64_t immr, uint64_t i
   return {};
 }
 
-Status Assembler::encode_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb) {
+Status Assembler::encode_extr(Register rd, Register rn, Register rm, uint64_t lsb) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched,
@@ -374,7 +382,7 @@ Status Assembler::encode_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb) {
   return {};
 }
 
-Status Assembler::encode_shift_reg(Reg rd, Reg rn, Reg rm, uint32_t op2) {
+Status Assembler::encode_shift_reg(Register rd, Register rn, Register rm, uint32_t op2) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched,
@@ -393,7 +401,7 @@ Status Assembler::encode_shift_reg(Reg rd, Reg rn, Reg rm, uint32_t op2) {
   return {};
 }
 
-Status Assembler::encode_mul(Reg rd, Reg rn, Reg rm, Reg ra, uint32_t op) {
+Status Assembler::encode_mul(Register rd, Register rn, Register rm, Register ra, uint32_t op) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn) &&
@@ -413,7 +421,7 @@ Status Assembler::encode_mul(Reg rd, Reg rn, Reg rm, Reg ra, uint32_t op) {
   return {};
 }
 
-Status Assembler::encode_div(Reg rd, Reg rn, Reg rm, uint32_t op) {
+Status Assembler::encode_div(Register rd, Register rn, Register rm, uint32_t op) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched,
@@ -432,7 +440,7 @@ Status Assembler::encode_div(Reg rd, Reg rn, Reg rm, uint32_t op) {
   return {};
 }
 
-Status Assembler::encode_bit_scan(Reg rd, Reg rn, uint32_t op) {
+Status Assembler::encode_bit_scan(Register rd, Register rn, uint32_t op) {
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
@@ -447,9 +455,9 @@ Status Assembler::encode_bit_scan(Reg rd, Reg rn, uint32_t op) {
   return {};
 }
 
-Status Assembler::encode_cond_select(Reg rd,
-                                     Reg rn,
-                                     Reg rm,
+Status Assembler::encode_cond_select(Register rd,
+                                     Register rn,
+                                     Register rm,
                                      Condition condition,
                                      uint32_t op,
                                      uint32_t o2) {
@@ -470,8 +478,8 @@ Status Assembler::encode_cond_select(Reg rd,
   return {};
 }
 
-Status Assembler::encode_mem_imm_unscaled(Reg rt,
-                                          Reg rn,
+Status Assembler::encode_mem_imm_unscaled(Register rt,
+                                          Register rn,
                                           int64_t imm,
                                           uint32_t size,
                                           uint32_t opc) {
@@ -489,8 +497,8 @@ Status Assembler::encode_mem_imm_unscaled(Reg rt,
   return {};
 }
 
-Status Assembler::encode_mem_imm_unsigned_offset(Reg rt,
-                                                 Reg rn,
+Status Assembler::encode_mem_imm_unsigned_offset(Register rt,
+                                                 Register rn,
                                                  uint64_t imm,
                                                  uint32_t size,
                                                  uint32_t opc) {
@@ -508,8 +516,8 @@ Status Assembler::encode_mem_imm_unsigned_offset(Reg rt,
   return {};
 }
 
-Status Assembler::encode_mem_imm_writeback(Reg rt,
-                                           Reg rn,
+Status Assembler::encode_mem_imm_writeback(Register rt,
+                                           Register rn,
                                            int64_t imm,
                                            uint32_t size,
                                            uint32_t opc,
@@ -531,8 +539,8 @@ Status Assembler::encode_mem_imm_writeback(Reg rt,
   return {};
 }
 
-Status Assembler::encode_mem_imm(Reg rt,
-                                 Reg rn,
+Status Assembler::encode_mem_imm(Register rt,
+                                 Register rn,
                                  int64_t imm,
                                  Writeback writeback,
                                  uint32_t size,
@@ -553,9 +561,9 @@ Status Assembler::encode_mem_imm(Reg rt,
   }
 }
 
-Status Assembler::encode_mem_reg(Reg rt,
-                                 Reg rn,
-                                 Reg rm,
+Status Assembler::encode_mem_reg(Register rt,
+                                 Register rn,
+                                 Register rm,
                                  Scale scale,
                                  Extend extend,
                                  uint32_t size,
@@ -578,7 +586,7 @@ Status Assembler::encode_mem_reg(Reg rt,
   return {};
 }
 
-Status Assembler::encode_mem_label(Reg rt, Label label, uint32_t opc) {
+Status Assembler::encode_mem_label(Register rt, Label label, uint32_t opc) {
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
 
   const auto rti = register_index(rt);
@@ -589,9 +597,9 @@ Status Assembler::encode_mem_label(Reg rt, Label label, uint32_t opc) {
   return {};
 }
 
-Status Assembler::encode_mem_pair(Reg rt1,
-                                  Reg rt2,
-                                  Reg rn,
+Status Assembler::encode_mem_pair(Register rt1,
+                                  Register rt2,
+                                  Register rn,
                                   int64_t imm,
                                   Writeback writeback,
                                   uint32_t opc,
@@ -631,7 +639,7 @@ Status Assembler::encode_mem_pair(Reg rt1,
   return {};
 }
 
-Status Assembler::encode_mem_acq_rel(Reg rt, Reg rn, uint32_t size, uint32_t l) {
+Status Assembler::encode_mem_acq_rel(Register rt, Register rn, uint32_t size, uint32_t l) {
   A64_ASM_CHECK(Non64bitAddressForbidden, is_register_64bit(rn));
   A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
@@ -645,7 +653,7 @@ Status Assembler::encode_mem_acq_rel(Reg rt, Reg rn, uint32_t size, uint32_t l) 
   return {};
 }
 
-Status Assembler::encode_cb(Reg rt, Label label, uint32_t op) {
+Status Assembler::encode_cb(Register rt, Label label, uint32_t op) {
   const auto is_64bit = is_register_64bit(rt);
 
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
@@ -659,7 +667,7 @@ Status Assembler::encode_cb(Reg rt, Label label, uint32_t op) {
   return {};
 }
 
-Status Assembler::encode_tb(Reg rt, uint64_t bit, Label label, uint32_t op) {
+Status Assembler::encode_tb(Register rt, uint64_t bit, Label label, uint32_t op) {
   const auto is_64bit = is_register_64bit(rt);
 
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
@@ -681,7 +689,7 @@ Status Assembler::encode_b_imm(Label label, bool op) {
   return {};
 }
 
-Status Assembler::encode_br_indirect(Reg rn, uint32_t op) {
+Status Assembler::encode_br_indirect(Register rn, uint32_t op) {
   A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rn));
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rn));
 
@@ -777,52 +785,52 @@ void Assembler::apply_fixups() {
   fixups.clear();
 }
 
-Status Assembler::try_add(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_add(Register rd, Register rn, uint64_t imm) {
   return encode_add_sub_imm(rd, rn, imm, false, false);
 }
-Status Assembler::try_adds(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_adds(Register rd, Register rn, uint64_t imm) {
   return encode_add_sub_imm(rd, rn, imm, false, true);
 }
-Status Assembler::try_sub(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_sub(Register rd, Register rn, uint64_t imm) {
   return encode_add_sub_imm(rd, rn, imm, true, false);
 }
-Status Assembler::try_subs(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_subs(Register rd, Register rn, uint64_t imm) {
   return encode_add_sub_imm(rd, rn, imm, true, true);
 }
-Status Assembler::try_cmp(Reg rn, uint64_t imm) {
+Status Assembler::try_cmp(Register rn, uint64_t imm) {
   return try_subs(to_zero(rn), rn, imm);
 }
-Status Assembler::try_cmn(Reg rn, uint64_t imm) {
+Status Assembler::try_cmn(Register rn, uint64_t imm) {
   return try_adds(to_zero(rn), rn, imm);
 }
 
-Status Assembler::try_and_(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_and_(Register rd, Register rn, uint64_t imm) {
   return encode_bitwise_imm(rd, rn, imm, 0b00);
 }
-Status Assembler::try_ands(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_ands(Register rd, Register rn, uint64_t imm) {
   return encode_bitwise_imm(rd, rn, imm, 0b11);
 }
-Status Assembler::try_eor(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_eor(Register rd, Register rn, uint64_t imm) {
   return encode_bitwise_imm(rd, rn, imm, 0b10);
 }
-Status Assembler::try_orr(Reg rd, Reg rn, uint64_t imm) {
+Status Assembler::try_orr(Register rd, Register rn, uint64_t imm) {
   return encode_bitwise_imm(rd, rn, imm, 0b01);
 }
-Status Assembler::try_tst(Reg rn, uint64_t imm) {
+Status Assembler::try_tst(Register rn, uint64_t imm) {
   return try_ands(to_zero(rn), rn, imm);
 }
 
-Status Assembler::try_movz(Reg rd, uint64_t imm, uint64_t shift) {
+Status Assembler::try_movz(Register rd, uint64_t imm, uint64_t shift) {
   return encode_move_wide(rd, imm, shift, 0b10);
 }
-Status Assembler::try_movk(Reg rd, uint64_t imm, uint64_t shift) {
+Status Assembler::try_movk(Register rd, uint64_t imm, uint64_t shift) {
   return encode_move_wide(rd, imm, shift, 0b11);
 }
-Status Assembler::try_movn(Reg rd, uint64_t imm, uint64_t shift) {
+Status Assembler::try_movn(Register rd, uint64_t imm, uint64_t shift) {
   return encode_move_wide(rd, imm, shift, 0b00);
 }
 
-Status Assembler::try_mov(Reg rd, uint64_t imm) {
+Status Assembler::try_mov(Register rd, uint64_t imm) {
   if (imm == 0) {
     return try_movz(rd, 0);
   }
@@ -851,138 +859,186 @@ Status Assembler::try_mov(Reg rd, uint64_t imm) {
   return try_orr(rd, to_zero(rd), imm);
 }
 
-Status Assembler::try_adr(Reg rd, Label label) {
+Status Assembler::try_adr(Register rd, Label label) {
   return encode_adr(rd, label, 0);
 }
-Status Assembler::try_adrp(Reg rd, Label label) {
+Status Assembler::try_adrp(Register rd, Label label) {
   return encode_adr(rd, label, 1);
 }
 
-Status Assembler::try_bfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms) {
+Status Assembler::try_bfm(Register rd, Register rn, uint64_t immr, uint64_t imms) {
   return encode_bitfield_move(rd, rn, immr, imms, 0b01);
 }
-Status Assembler::try_sbfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms) {
+Status Assembler::try_sbfm(Register rd, Register rn, uint64_t immr, uint64_t imms) {
   return encode_bitfield_move(rd, rn, immr, imms, 0b00);
 }
-Status Assembler::try_ubfm(Reg rd, Reg rn, uint64_t immr, uint64_t imms) {
+Status Assembler::try_ubfm(Register rd, Register rn, uint64_t immr, uint64_t imms) {
   return encode_bitfield_move(rd, rn, immr, imms, 0b10);
 }
 
-Status Assembler::try_bfc(Reg rd, uint64_t lsb, uint64_t width) {
+Status Assembler::try_bfc(Register rd, uint64_t lsb, uint64_t width) {
   return try_bfi(rd, to_zero(rd), lsb, width);
 }
-Status Assembler::try_bfi(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+Status Assembler::try_bfi(Register rd, Register rn, uint64_t lsb, uint64_t width) {
   const auto immr = positive_modulo<uint32_t>(-int32_t(lsb), is_register_64bit(rd) ? 64 : 32);
   return try_bfm(rd, rn, immr, width - 1);
 }
-Status Assembler::try_bfxil(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+Status Assembler::try_bfxil(Register rd, Register rn, uint64_t lsb, uint64_t width) {
   return try_bfm(rd, rn, lsb, lsb + width - 1);
 }
-Status Assembler::try_sbfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+Status Assembler::try_sbfiz(Register rd, Register rn, uint64_t lsb, uint64_t width) {
   const auto immr = positive_modulo<uint32_t>(-int32_t(lsb), is_register_64bit(rd) ? 64 : 32);
   return try_sbfm(rd, rn, immr, width - 1);
 }
-Status Assembler::try_sbfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+Status Assembler::try_sbfx(Register rd, Register rn, uint64_t lsb, uint64_t width) {
   return try_sbfm(rd, rn, lsb, lsb + width - 1);
 }
-Status Assembler::try_ubfiz(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+Status Assembler::try_ubfiz(Register rd, Register rn, uint64_t lsb, uint64_t width) {
   const auto immr = positive_modulo<uint32_t>(-int32_t(lsb), is_register_64bit(rd) ? 64 : 32);
   return try_ubfm(rd, rn, immr, width - 1);
 }
-Status Assembler::try_ubfx(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+Status Assembler::try_ubfx(Register rd, Register rn, uint64_t lsb, uint64_t width) {
   return try_ubfm(rd, rn, lsb, lsb + width - 1);
 }
 
-Status Assembler::try_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb) {
+Status Assembler::try_extr(Register rd, Register rn, Register rm, uint64_t lsb) {
   return encode_extr(rd, rn, rm, lsb);
 }
 
-Status Assembler::try_asr(Reg rd, Reg rn, uint64_t shift) {
+Status Assembler::try_asr(Register rd, Register rn, uint64_t shift) {
   return try_sbfm(rd, rn, shift, is_register_64bit(rd) ? 63 : 31);
 }
-Status Assembler::try_lsl(Reg rd, Reg rn, uint64_t shift) {
+Status Assembler::try_lsl(Register rd, Register rn, uint64_t shift) {
   const auto immr = positive_modulo<uint32_t>(-int32_t(shift), is_register_64bit(rd) ? 64 : 32);
   return try_ubfm(rd, rn, immr, (is_register_64bit(rd) ? 63 : 31) - shift);
 }
-Status Assembler::try_lsr(Reg rd, Reg rn, uint64_t shift) {
+Status Assembler::try_lsr(Register rd, Register rn, uint64_t shift) {
   return try_ubfm(rd, rn, shift, is_register_64bit(rd) ? 63 : 31);
 }
-Status Assembler::try_ror(Reg rd, Reg rn, uint64_t shift) {
+Status Assembler::try_ror(Register rd, Register rn, uint64_t shift) {
   return try_extr(rd, rn, rn, shift);
 }
 
-Status Assembler::try_sxtb(Reg rd, Reg rn) {
+Status Assembler::try_sxtb(Register rd, Register rn) {
   return try_sbfm(rd, rn, 0, 7);
 }
-Status Assembler::try_sxth(Reg rd, Reg rn) {
+Status Assembler::try_sxth(Register rd, Register rn) {
   return try_sbfm(rd, rn, 0, 15);
 }
-Status Assembler::try_sxtw(Reg rd, Reg rn) {
+Status Assembler::try_sxtw(Register rd, Register rn) {
   return try_sbfm(rd, rn, 0, 31);
 }
-Status Assembler::try_uxtb(Reg rd, Reg rn) {
+Status Assembler::try_uxtb(Register rd, Register rn) {
   return try_ubfm(rd, rn, 0, 7);
 }
-Status Assembler::try_uxth(Reg rd, Reg rn) {
+Status Assembler::try_uxth(Register rd, Register rn) {
   return try_ubfm(rd, rn, 0, 15);
 }
 
-Status Assembler::try_add(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_add(Register rd,
+                          Register rn,
+                          Register rm,
+                          uint64_t shift_amount,
+                          Shift shift) {
   return encode_add_sub_shifted(rd, rn, rm, shift_amount, shift, false, false);
 }
-Status Assembler::try_adds(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_adds(Register rd,
+                           Register rn,
+                           Register rm,
+                           uint64_t shift_amount,
+                           Shift shift) {
   return encode_add_sub_shifted(rd, rn, rm, shift_amount, shift, false, true);
 }
-Status Assembler::try_sub(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_sub(Register rd,
+                          Register rn,
+                          Register rm,
+                          uint64_t shift_amount,
+                          Shift shift) {
   return encode_add_sub_shifted(rd, rn, rm, shift_amount, shift, true, false);
 }
-Status Assembler::try_subs(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_subs(Register rd,
+                           Register rn,
+                           Register rm,
+                           uint64_t shift_amount,
+                           Shift shift) {
   return encode_add_sub_shifted(rd, rn, rm, shift_amount, shift, true, true);
 }
-Status Assembler::try_cmp(Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_cmp(Register rn, Register rm, uint64_t shift_amount, Shift shift) {
   return try_subs(to_zero(rn), rn, rm, shift_amount, shift);
 }
-Status Assembler::try_cmn(Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_cmn(Register rn, Register rm, uint64_t shift_amount, Shift shift) {
   return try_adds(to_zero(rn), rn, rm, shift_amount, shift);
 }
-Status Assembler::try_neg(Reg rd, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_neg(Register rd, Register rm, uint64_t shift_amount, Shift shift) {
   return try_sub(rd, to_zero(rm), rm, shift_amount, shift);
 }
-Status Assembler::try_negs(Reg rd, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_negs(Register rd, Register rm, uint64_t shift_amount, Shift shift) {
   return try_subs(rd, to_zero(rm), rm, shift_amount, shift);
 }
 
-Status Assembler::try_and_(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_and_(Register rd,
+                           Register rn,
+                           Register rm,
+                           uint64_t shift_amount,
+                           Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b00, false);
 }
-Status Assembler::try_ands(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_ands(Register rd,
+                           Register rn,
+                           Register rm,
+                           uint64_t shift_amount,
+                           Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b11, false);
 }
-Status Assembler::try_bic(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_bic(Register rd,
+                          Register rn,
+                          Register rm,
+                          uint64_t shift_amount,
+                          Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b00, true);
 }
-Status Assembler::try_bics(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_bics(Register rd,
+                           Register rn,
+                           Register rm,
+                           uint64_t shift_amount,
+                           Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b11, true);
 }
-Status Assembler::try_eor(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_eor(Register rd,
+                          Register rn,
+                          Register rm,
+                          uint64_t shift_amount,
+                          Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b10, false);
 }
-Status Assembler::try_eon(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_eon(Register rd,
+                          Register rn,
+                          Register rm,
+                          uint64_t shift_amount,
+                          Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b10, true);
 }
-Status Assembler::try_orr(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_orr(Register rd,
+                          Register rn,
+                          Register rm,
+                          uint64_t shift_amount,
+                          Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b01, false);
 }
-Status Assembler::try_orn(Reg rd, Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_orn(Register rd,
+                          Register rn,
+                          Register rm,
+                          uint64_t shift_amount,
+                          Shift shift) {
   return encode_bitwise_shifted(rd, rn, rm, shift_amount, shift, 0b01, true);
 }
-Status Assembler::try_mvn(Reg rd, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_mvn(Register rd, Register rm, uint64_t shift_amount, Shift shift) {
   return try_orn(rd, to_zero(rm), rm, shift_amount, shift);
 }
-Status Assembler::try_tst(Reg rn, Reg rm, uint64_t shift_amount, Shift shift) {
+Status Assembler::try_tst(Register rn, Register rm, uint64_t shift_amount, Shift shift) {
   return try_ands(to_zero(rn), rn, rm, shift_amount, shift);
 }
-Status Assembler::try_mov(Reg rd, Reg rn) {
+Status Assembler::try_mov(Register rd, Register rn) {
   if (is_register_sp(rd) || is_register_sp(rn)) {
     return try_add(rd, rn, 0);
   } else {
@@ -990,151 +1046,163 @@ Status Assembler::try_mov(Reg rd, Reg rn) {
   }
 }
 
-Status Assembler::try_asr(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_asr(Register rd, Register rn, Register rm) {
   return encode_shift_reg(rd, rn, rm, 0b10);
 }
-Status Assembler::try_lsl(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_lsl(Register rd, Register rn, Register rm) {
   return encode_shift_reg(rd, rn, rm, 0b00);
 }
-Status Assembler::try_lsr(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_lsr(Register rd, Register rn, Register rm) {
   return encode_shift_reg(rd, rn, rm, 0b01);
 }
-Status Assembler::try_ror(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_ror(Register rd, Register rn, Register rm) {
   return encode_shift_reg(rd, rn, rm, 0b11);
 }
 
-Status Assembler::try_madd(Reg rd, Reg rn, Reg rm, Reg ra) {
+Status Assembler::try_madd(Register rd, Register rn, Register rm, Register ra) {
   return encode_mul(rd, rn, rm, ra, 0);
 }
-Status Assembler::try_msub(Reg rd, Reg rn, Reg rm, Reg ra) {
+Status Assembler::try_msub(Register rd, Register rn, Register rm, Register ra) {
   return encode_mul(rd, rn, rm, ra, 1);
 }
-Status Assembler::try_mneg(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_mneg(Register rd, Register rn, Register rm) {
   return try_msub(rd, rn, rm, to_zero(rm));
 }
-Status Assembler::try_mul(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_mul(Register rd, Register rn, Register rm) {
   return try_madd(rd, rn, rm, to_zero(rm));
 }
 
-Status Assembler::try_sdiv(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_sdiv(Register rd, Register rn, Register rm) {
   return encode_div(rd, rn, rm, 1);
 }
-Status Assembler::try_udiv(Reg rd, Reg rn, Reg rm) {
+Status Assembler::try_udiv(Register rd, Register rn, Register rm) {
   return encode_div(rd, rn, rm, 0);
 }
 
-Status Assembler::try_cls(Reg rd, Reg rn) {
+Status Assembler::try_cls(Register rd, Register rn) {
   return encode_bit_scan(rd, rn, 1);
 }
-Status Assembler::try_clz(Reg rd, Reg rn) {
+Status Assembler::try_clz(Register rd, Register rn) {
   return encode_bit_scan(rd, rn, 0);
 }
 
-Status Assembler::try_csel(Reg rd, Reg rn, Reg rm, Condition condition) {
+Status Assembler::try_csel(Register rd, Register rn, Register rm, Condition condition) {
   return encode_cond_select(rd, rn, rm, condition, 0, 0);
 }
-Status Assembler::try_csinc(Reg rd, Reg rn, Reg rm, Condition condition) {
+Status Assembler::try_csinc(Register rd, Register rn, Register rm, Condition condition) {
   return encode_cond_select(rd, rn, rm, condition, 0, 1);
 }
-Status Assembler::try_cset(Reg rd, Condition condition) {
+Status Assembler::try_cset(Register rd, Condition condition) {
   return try_csinc(rd, to_zero(rd), to_zero(rd), Condition(uint32_t(condition) ^ 1));
 }
 
-Status Assembler::try_ldr(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldr(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, is_register_64bit(rt) ? 0b11 : 0b10, 0b01);
 }
-Status Assembler::try_ldrh(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldrh(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, 0b01, 0b01);
 }
-Status Assembler::try_ldrb(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldrb(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, 0b00, 0b01);
 }
-Status Assembler::try_ldrsw(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldrsw(Register rt, Register rn, int64_t imm, Writeback writeback) {
   A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt));
   return encode_mem_imm(rt, rn, imm, writeback, 0b10, 0b10);
 }
-Status Assembler::try_ldrsh(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldrsh(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, 0b01, is_register_64bit(rt) ? 0b10 : 0b11);
 }
-Status Assembler::try_ldrsb(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldrsb(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, 0b00, is_register_64bit(rt) ? 0b10 : 0b11);
 }
 
-Status Assembler::try_str(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_str(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, is_register_64bit(rt) ? 0b11 : 0b10, 0b00);
 }
-Status Assembler::try_strh(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_strh(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, 0b01, 0b00);
 }
-Status Assembler::try_strb(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_strb(Register rt, Register rn, int64_t imm, Writeback writeback) {
   return encode_mem_imm(rt, rn, imm, writeback, 0b00, 0b00);
 }
 
-Status Assembler::try_ldr(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_ldr(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, is_register_64bit(rt) ? 0b11 : 0b10, 0b01);
 }
-Status Assembler::try_ldrh(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_ldrh(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b01, 0b01);
 }
-Status Assembler::try_ldrb(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_ldrb(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b00, 0b01);
 }
-Status Assembler::try_ldrsw(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_ldrsw(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt));
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b10, 0b10);
 }
-Status Assembler::try_ldrsh(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_ldrsh(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b01, is_register_64bit(rt) ? 0b10 : 0b11);
 }
-Status Assembler::try_ldrsb(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_ldrsb(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b00, is_register_64bit(rt) ? 0b10 : 0b11);
 }
 
-Status Assembler::try_str(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_str(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, is_register_64bit(rt) ? 0b11 : 0b10, 0b00);
 }
-Status Assembler::try_strh(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_strh(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b01, 0b00);
 }
-Status Assembler::try_strb(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend) {
+Status Assembler::try_strb(Register rt, Register rn, Register rm, Scale scale, Extend extend) {
   return encode_mem_reg(rt, rn, rm, scale, extend, 0b00, 0b00);
 }
 
-Status Assembler::try_ldr(Reg rt, Label label) {
+Status Assembler::try_ldr(Register rt, Label label) {
   return encode_mem_label(rt, label, is_register_64bit(rt) ? 0b01 : 0b00);
 }
-Status Assembler::try_ldrsw(Reg rt, Label label) {
+Status Assembler::try_ldrsw(Register rt, Label label) {
   A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt));
   return encode_mem_label(rt, label, 0b10);
 }
 
-Status Assembler::try_ldp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldp(Register rt1,
+                          Register rt2,
+                          Register rn,
+                          int64_t imm,
+                          Writeback writeback) {
   return encode_mem_pair(rt1, rt2, rn, imm, writeback, is_register_64bit(rt1) ? 0b10 : 0b00, 1);
 }
-Status Assembler::try_ldpsw(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_ldpsw(Register rt1,
+                            Register rt2,
+                            Register rn,
+                            int64_t imm,
+                            Writeback writeback) {
   A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rt1));
   return encode_mem_pair(rt1, rt2, rn, imm, writeback, 0b01, 1);
 }
-Status Assembler::try_stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback) {
+Status Assembler::try_stp(Register rt1,
+                          Register rt2,
+                          Register rn,
+                          int64_t imm,
+                          Writeback writeback) {
   return encode_mem_pair(rt1, rt2, rn, imm, writeback, is_register_64bit(rt1) ? 0b10 : 0b00, 0);
 }
 
-Status Assembler::try_ldar(Reg rt, Reg rn) {
+Status Assembler::try_ldar(Register rt, Register rn) {
   return encode_mem_acq_rel(rt, rn, is_register_64bit(rt) ? 0b11 : 0b10, 1);
 }
-Status Assembler::try_ldarh(Reg rt, Reg rn) {
+Status Assembler::try_ldarh(Register rt, Register rn) {
   return encode_mem_acq_rel(rt, rn, 0b01, 1);
 }
-Status Assembler::try_ldarb(Reg rt, Reg rn) {
+Status Assembler::try_ldarb(Register rt, Register rn) {
   return encode_mem_acq_rel(rt, rn, 0b00, 1);
 }
-Status Assembler::try_stlr(Reg rt, Reg rn) {
+Status Assembler::try_stlr(Register rt, Register rn) {
   return encode_mem_acq_rel(rt, rn, is_register_64bit(rt) ? 0b11 : 0b10, 0);
 }
-Status Assembler::try_stlrh(Reg rt, Reg rn) {
+Status Assembler::try_stlrh(Register rt, Register rn) {
   return encode_mem_acq_rel(rt, rn, 0b01, 0);
 }
-Status Assembler::try_stlrb(Reg rt, Reg rn) {
+Status Assembler::try_stlrb(Register rt, Register rn) {
   return encode_mem_acq_rel(rt, rn, 0b00, 0);
 }
 
@@ -1144,16 +1212,16 @@ Status Assembler::try_b(Condition condition, Label label) {
   return {};
 }
 
-Status Assembler::try_cbz(Reg rt, Label label) {
+Status Assembler::try_cbz(Register rt, Label label) {
   return encode_cb(rt, label, 0);
 }
-Status Assembler::try_cbnz(Reg rt, Label label) {
+Status Assembler::try_cbnz(Register rt, Label label) {
   return encode_cb(rt, label, 1);
 }
-Status Assembler::try_tbz(Reg rt, uint64_t bit, Label label) {
+Status Assembler::try_tbz(Register rt, uint64_t bit, Label label) {
   return encode_tb(rt, bit, label, 0);
 }
-Status Assembler::try_tbnz(Reg rt, uint64_t bit, Label label) {
+Status Assembler::try_tbnz(Register rt, uint64_t bit, Label label) {
   return encode_tb(rt, bit, label, 1);
 }
 
@@ -1165,15 +1233,15 @@ Status Assembler::try_bl(Label label) {
   return encode_b_imm(label, true);
 }
 
-Status Assembler::try_blr(Reg rn) {
+Status Assembler::try_blr(Register rn) {
   return encode_br_indirect(rn, 0b01);
 }
 
-Status Assembler::try_br(Reg rn) {
+Status Assembler::try_br(Register rn) {
   return encode_br_indirect(rn, 0b00);
 }
 
-Status Assembler::try_ret(Reg rn) {
+Status Assembler::try_ret(Register rn) {
   return encode_br_indirect(rn, 0b10);
 }
 

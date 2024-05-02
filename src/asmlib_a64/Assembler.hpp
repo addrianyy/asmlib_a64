@@ -70,64 +70,82 @@ class Assembler {
   void emit(uint32_t instruction);
   void emit_fixup(Label label, Fixup::Type type);
 
-  Status encode_add_sub_imm(Reg rd, Reg rn, uint64_t imm, bool sub_op, bool set_flags);
-  Status encode_add_sub_shifted(Reg rd,
-                                Reg rn,
-                                Reg rm,
+  Status encode_add_sub_imm(Register rd, Register rn, uint64_t imm, bool sub_op, bool set_flags);
+  Status encode_add_sub_shifted(Register rd,
+                                Register rn,
+                                Register rm,
                                 uint32_t shift_amount,
                                 Shift shift,
                                 bool sub_op,
                                 bool set_flags);
-  Status encode_bitwise_imm(Reg rd, Reg rn, uint64_t imm, uint32_t opc);
-  Status encode_bitwise_shifted(Reg rd,
-                                Reg rn,
-                                Reg rm,
+  Status encode_bitwise_imm(Register rd, Register rn, uint64_t imm, uint32_t opc);
+  Status encode_bitwise_shifted(Register rd,
+                                Register rn,
+                                Register rm,
                                 uint32_t shift_amount,
                                 Shift shift,
                                 uint32_t opc,
                                 bool invert);
 
-  Status encode_move_wide(Reg rd, uint64_t imm, uint64_t shift, uint32_t opc);
-  Status encode_adr(Reg rd, Label label, uint32_t op);
-  Status encode_bitfield_move(Reg rd, Reg rn, uint64_t immr, uint64_t imms, uint32_t opc);
-  Status encode_extr(Reg rd, Reg rn, Reg rm, uint64_t lsb);
+  Status encode_move_wide(Register rd, uint64_t imm, uint64_t shift, uint32_t opc);
+  Status encode_adr(Register rd, Label label, uint32_t op);
+  Status encode_bitfield_move(Register rd, Register rn, uint64_t immr, uint64_t imms, uint32_t opc);
+  Status encode_extr(Register rd, Register rn, Register rm, uint64_t lsb);
 
-  Status encode_shift_reg(Reg rd, Reg rn, Reg rm, uint32_t op2);
-  Status encode_mul(Reg rd, Reg rn, Reg rm, Reg ra, uint32_t op);
-  Status encode_div(Reg rd, Reg rn, Reg rm, uint32_t op);
-  Status encode_bit_scan(Reg rd, Reg rn, uint32_t op);
-  Status encode_cond_select(Reg rd, Reg rn, Reg rm, Condition condition, uint32_t op, uint32_t o2);
+  Status encode_shift_reg(Register rd, Register rn, Register rm, uint32_t op2);
+  Status encode_mul(Register rd, Register rn, Register rm, Register ra, uint32_t op);
+  Status encode_div(Register rd, Register rn, Register rm, uint32_t op);
+  Status encode_bit_scan(Register rd, Register rn, uint32_t op);
+  Status encode_cond_select(Register rd,
+                            Register rn,
+                            Register rm,
+                            Condition condition,
+                            uint32_t op,
+                            uint32_t o2);
 
-  Status encode_mem_imm_unscaled(Reg rt, Reg rn, int64_t imm, uint32_t size, uint32_t opc);
-  Status encode_mem_imm_unsigned_offset(Reg rt, Reg rn, uint64_t imm, uint32_t size, uint32_t opc);
-  Status encode_mem_imm_writeback(Reg rt,
-                                  Reg rn,
+  Status encode_mem_imm_unscaled(Register rt,
+                                 Register rn,
+                                 int64_t imm,
+                                 uint32_t size,
+                                 uint32_t opc);
+  Status encode_mem_imm_unsigned_offset(Register rt,
+                                        Register rn,
+                                        uint64_t imm,
+                                        uint32_t size,
+                                        uint32_t opc);
+  Status encode_mem_imm_writeback(Register rt,
+                                  Register rn,
                                   int64_t imm,
                                   uint32_t size,
                                   uint32_t opc,
                                   bool post_index);
-  Status encode_mem_imm(Reg rt,
-                        Reg rn,
+  Status encode_mem_imm(Register rt,
+                        Register rn,
                         int64_t imm,
                         Writeback writeback,
                         uint32_t size,
                         uint32_t opc);
-  Status
-  encode_mem_reg(Reg rt, Reg rn, Reg rm, Scale scale, Extend extend, uint32_t size, uint32_t opc);
-  Status encode_mem_label(Reg rt, Label label, uint32_t opc);
-  Status encode_mem_pair(Reg rt1,
-                         Reg rt2,
-                         Reg rn,
+  Status encode_mem_reg(Register rt,
+                        Register rn,
+                        Register rm,
+                        Scale scale,
+                        Extend extend,
+                        uint32_t size,
+                        uint32_t opc);
+  Status encode_mem_label(Register rt, Label label, uint32_t opc);
+  Status encode_mem_pair(Register rt1,
+                         Register rt2,
+                         Register rn,
                          int64_t imm,
                          Writeback writeback,
                          uint32_t opc,
                          uint32_t l);
-  Status encode_mem_acq_rel(Reg rt, Reg rn, uint32_t size, uint32_t l);
+  Status encode_mem_acq_rel(Register rt, Register rn, uint32_t size, uint32_t l);
 
-  Status encode_cb(Reg rt, Label label, uint32_t op);
-  Status encode_tb(Reg rt, uint64_t bit, Label label, uint32_t op);
+  Status encode_cb(Register rt, Label label, uint32_t op);
+  Status encode_tb(Register rt, uint64_t bit, Label label, uint32_t op);
   Status encode_b_imm(Label label, bool op);
-  Status encode_br_indirect(Reg rn, uint32_t op);
+  Status encode_br_indirect(Register rn, uint32_t op);
 
   void assert_instruction_encoded(const char* instruction_name, Status status);
 

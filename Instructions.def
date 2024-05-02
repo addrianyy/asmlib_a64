@@ -1,43 +1,43 @@
-@(Reg rd, Reg rn, uint64_t imm) {
+@(Register rd, Register rn, uint64_t imm) {
   add
   adds
   sub
   subs
 }
-@(Reg rn, uint64_t imm) {
+@(Register rn, uint64_t imm) {
   cmp
   cmn
 }
 
-@(Reg rd, Reg rn, uint64_t imm) {
+@(Register rd, Register rn, uint64_t imm) {
   and_
   ands
   eor
   orr
 }
-tst(Reg rn, uint64_t imm)
+tst(Register rn, uint64_t imm)
 
-@(Reg rd, uint64_t imm, uint64_t shift = 0) {
+@(Register rd, uint64_t imm, uint64_t shift = 0) {
   movz
   movk
   movn
 }
 
-mov(Reg rd, uint64_t imm)
+mov(Register rd, uint64_t imm)
 
-@(Reg rd, Label label) {
+@(Register rd, Label label) {
   adr
   adrp
 }
 
-@(Reg rd, Reg rn, uint64_t immr, uint64_t imms) {
+@(Register rd, Register rn, uint64_t immr, uint64_t imms) {
   bfm
   sbfm
   ubfm
 }
 
-bfc(Reg rd, uint64_t lsb, uint64_t width)
-@(Reg rd, Reg rn, uint64_t lsb, uint64_t width) {
+bfc(Register rd, uint64_t lsb, uint64_t width)
+@(Register rd, Register rn, uint64_t lsb, uint64_t width) {
   bfi
   bfxil
   sbfiz
@@ -46,16 +46,16 @@ bfc(Reg rd, uint64_t lsb, uint64_t width)
   ubfx
 }
 
-extr(Reg rd, Reg rn, Reg rm, uint64_t lsb)
+extr(Register rd, Register rn, Register rm, uint64_t lsb)
 
-@(Reg rd, Reg rn, uint64_t shift) {
+@(Register rd, Register rn, uint64_t shift) {
   asr
   lsl
   lsr
   ror
 }
 
-@(Reg rd, Reg rn) {
+@(Register rd, Register rn) {
   sxtb
   sxth
   sxtw
@@ -63,22 +63,22 @@ extr(Reg rd, Reg rn, Reg rm, uint64_t lsb)
   uxth
 }
 
-@(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
+@(Register rd, Register rn, Register rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
   add
   adds
   sub
   subs
 }
-@(Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
+@(Register rn, Register rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
   cmp
   cmn
 }
-@(Reg rd, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
+@(Register rd, Register rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
   neg
   negs
 }
 
-@(Reg rd, Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
+@(Register rd, Register rn, Register rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl) {
   and_
   ands
   bic
@@ -88,46 +88,46 @@ extr(Reg rd, Reg rn, Reg rm, uint64_t lsb)
   orr
   orn
 }
-mvn(Reg rd, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
-tst(Reg rn, Reg rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+mvn(Register rd, Register rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
+tst(Register rn, Register rm, uint64_t shift_amount = 0, Shift shift = Shift::Lsl)
 
 
 
-mov(Reg rd, Reg rn)
+mov(Register rd, Register rn)
 
-@(Reg rd, Reg rn, Reg rm) {
+@(Register rd, Register rn, Register rm) {
   asr
   lsl
   lsr
   ror
 }
 
-@(Reg rd, Reg rn, Reg rm, Reg ra) {
+@(Register rd, Register rn, Register rm, Register ra) {
   madd
   msub
 }
-@(Reg rd, Reg rn, Reg rm) {
+@(Register rd, Register rn, Register rm) {
   mneg
   mul
 }
 
-@(Reg rd, Reg rn, Reg rm) {
+@(Register rd, Register rn, Register rm) {
   sdiv
   udiv
 }
 
-@(Reg rd, Reg rn) {
+@(Register rd, Register rn) {
   cls
   clz
 }
 
-@(Reg rd, Reg rn, Reg rm, Condition condition) {
+@(Register rd, Register rn, Register rm, Condition condition) {
   csel
   csinc
 }
-cset(Reg rd, Condition condition)
+cset(Register rd, Condition condition)
 
-@(Reg rt, Reg rn, int64_t imm, Writeback writeback = Writeback::None) {
+@(Register rt, Register rn, int64_t imm, Writeback writeback = Writeback::None) {
   ldr
   ldrh
   ldrb
@@ -140,7 +140,7 @@ cset(Reg rd, Condition condition)
   strb
 }
 
-@(Reg rt, Reg rn, Reg rm, Scale scale = Scale::None, Extend extend = Extend::Lsl) {
+@(Register rt, Register rn, Register rm, Scale scale = Scale::None, Extend extend = Extend::Lsl) {
   ldr
   ldrh
   ldrb
@@ -153,17 +153,17 @@ cset(Reg rd, Condition condition)
   strb
 }
 
-@(Reg rt, Label label) {
+@(Register rt, Label label) {
   ldr
   ldrsw
 }
 
-@(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None) {
+@(Register rt1, Register rt2, Register rn, int64_t imm, Writeback writeback = Writeback::None) {
   ldp
   ldpsw
 }
 
-@(Reg rt, Reg rn) {
+@(Register rt, Register rn) {
   ldar
   ldarb
   ldarh
@@ -172,20 +172,20 @@ cset(Reg rd, Condition condition)
   stlrh
 }
 
-stp(Reg rt1, Reg rt2, Reg rn, int64_t imm, Writeback writeback = Writeback::None)
+stp(Register rt1, Register rt2, Register rn, int64_t imm, Writeback writeback = Writeback::None)
 
 b(Condition condition, Label label)
-cbz(Reg rt, Label label)
-cbnz(Reg rt, Label label)
-tbz(Reg rt, uint64_t bit, Label label)
-tbnz(Reg rt, uint64_t bit, Label label)
+cbz(Register rt, Label label)
+cbnz(Register rt, Label label)
+tbz(Register rt, uint64_t bit, Label label)
+tbnz(Register rt, uint64_t bit, Label label)
 
 b(Label label)
 bl(Label label)
 
-blr(Reg rn)
-br(Reg rn)
-ret(Reg rn = Reg::X30)
+blr(Register rn)
+br(Register rn)
+ret(Register rn = Register::X30)
 
 svc(uint16_t imm)
 brk(uint16_t imm)
