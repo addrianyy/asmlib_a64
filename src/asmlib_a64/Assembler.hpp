@@ -43,6 +43,9 @@ class Label {
   uint64_t index;
 
   explicit Label(uint64_t index) : index(index) {}
+
+ public:
+  Label() : index(std::numeric_limits<uint64_t>::max()) {}
 };
 
 class Assembler {
@@ -128,6 +131,8 @@ class Assembler {
 
   void assert_instruction_encoded(const char* instruction_name, Status status);
 
+  void apply_fixups();
+
  public:
 #include "Instructions.inc"
 
@@ -135,8 +140,7 @@ class Assembler {
   void insert_label(Label label);
   Label insert_label();
 
-  void apply_fixups();
-  std::span<const uint32_t> assembled_instructions() const;
+  std::span<const uint32_t> assembled_instructions();
 };
 
 }  // namespace a64

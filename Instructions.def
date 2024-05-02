@@ -185,7 +185,7 @@ bl(Label label)
 
 blr(Reg rn)
 br(Reg rn)
-ret(Reg rn)
+ret(Reg rn = Reg::X30)
 
 svc(uint16_t imm)
 brk(uint16_t imm)

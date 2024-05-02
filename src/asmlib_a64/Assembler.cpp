@@ -253,7 +253,7 @@ Status Assembler::encode_bitwise_imm(Reg rd, Reg rn, uint64_t imm, uint32_t opc)
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
-  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rd) && !is_register_zr(rn));
+  A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd) && !is_register_sp(rn));
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -704,6 +704,79 @@ void Assembler::assert_instruction_encoded(const char* instruction_name, Status 
   }
 }
 
+void Assembler::apply_fixups() {
+  for (const auto& fixup : fixups) {
+    const auto target = labels[fixup.label];
+    A64_ASM_ASSERT(target != std::numeric_limits<uint64_t>::max(),
+                   "fixup label was not inserted into the instruction stream");
+
+    uint32_t size{};
+    uint32_t shift{};
+
+    bool skip = false;
+
+    switch (fixup.type) {
+      case Fixup::Type::B: {
+        size = 26;
+        shift = 0;
+        break;
+      }
+
+      case Fixup::Type::Bcond_Cb_Ldr: {
+        size = 19;
+        shift = 5;
+        break;
+      }
+
+      case Fixup::Type::Tb: {
+        size = 14;
+        shift = 5;
+        break;
+      }
+
+      case Fixup::Type::Adr:
+      case Fixup::Type::Adrp: {
+        uint64_t current = fixup.location;
+        uint64_t target_adjusted = fixup.label;
+
+        // Remove bottom 12 bits for adrp.
+        if (fixup.type == Fixup::Type::Adrp) {
+          current &= ~uint64_t(0xfff);
+          target_adjusted &= ~uint64_t(0xfff);
+        }
+
+        const auto delta = int64_t(target_adjusted) - int64_t(current);
+        const auto delta2 = fixup.type == Fixup::Type::Adrp ? (delta >> 12) : delta;
+
+        A64_ASM_ASSERT(fits_within_bits_signed(delta2, 21),
+                       "cannot process fixup: adr/adrp delta doesn't fit in the imm field");
+
+        const auto delta_masked = uint64_t(delta2 & ((uint32_t(1) << 21) - 1));
+
+        instructions[fixup.location] |= (delta_masked & 0b11) << 29;
+        instructions[fixup.location] |= (delta_masked >> 2) << 5;
+        skip = true;
+
+        break;
+      }
+
+      default: {
+        A64_ASM_ASSERT(false, "unknown fixup type");
+      }
+    }
+
+    const auto delta = int64_t(target) - int64_t(fixup.location);
+
+    if (!skip) {
+      A64_ASM_ASSERT(fits_within_bits_signed(delta, size),
+                     "cannot process fixup: delta doesn't fit in the imm field");
+      instructions[fixup.location] |= uint64_t(delta & ((uint32_t(1) << size) - 1)) << shift;
+    }
+  }
+
+  fixups.clear();
+}
+
 Status Assembler::try_add(Reg rd, Reg rn, uint64_t imm) {
   return encode_add_sub_imm(rd, rn, imm, false, false);
 }
@@ -750,6 +823,10 @@ Status Assembler::try_movn(Reg rd, uint64_t imm, uint64_t shift) {
 }
 
 Status Assembler::try_mov(Reg rd, uint64_t imm) {
+  if (imm == 0) {
+    return try_movz(rd, 0);
+  }
+
   // Try movz.
   {
     const auto value = imm;
@@ -960,7 +1037,7 @@ Status Assembler::try_csinc(Reg rd, Reg rn, Reg rm, Condition condition) {
   return encode_cond_select(rd, rn, rm, condition, 0, 1);
 }
 Status Assembler::try_cset(Reg rd, Condition condition) {
-  return try_csinc(rd, to_zero(rd), to_zero(rd), condition);
+  return try_csinc(rd, to_zero(rd), to_zero(rd), Condition(uint32_t(condition) ^ 1));
 }
 
 Status Assembler::try_ldr(Reg rt, Reg rn, int64_t imm, Writeback writeback) {
@@ -1127,79 +1204,7 @@ Label Assembler::insert_label() {
   return l;
 }
 
-void Assembler::apply_fixups() {
-  for (const auto& fixup : fixups) {
-    const auto target = labels[fixup.label];
-    A64_ASM_ASSERT(target != std::numeric_limits<uint64_t>::max(),
-                   "fixup label was not inserted into the instruction stream");
-
-    uint32_t size{};
-    uint32_t shift{};
-
-    bool skip = false;
-
-    switch (fixup.type) {
-      case Fixup::Type::B: {
-        size = 26;
-        shift = 0;
-        break;
-      }
-
-      case Fixup::Type::Bcond_Cb_Ldr: {
-        size = 19;
-        shift = 5;
-        break;
-      }
-
-      case Fixup::Type::Tb: {
-        size = 14;
-        shift = 5;
-        break;
-      }
-
-      case Fixup::Type::Adr:
-      case Fixup::Type::Adrp: {
-        uint64_t current = fixup.location;
-        uint64_t target_adjusted = fixup.label;
-
-        // Remove bottom 12 bits for adrp.
-        if (fixup.type == Fixup::Type::Adrp) {
-          current &= ~uint64_t(0xfff);
-          target_adjusted &= ~uint64_t(0xfff);
-        }
-
-        const auto delta = int64_t(target_adjusted) - int64_t(current);
-        const auto delta2 = fixup.type == Fixup::Type::Adrp ? (delta >> 12) : delta;
-
-        A64_ASM_ASSERT(fits_within_bits_signed(delta2, 21),
-                       "cannot process fixup: adr/adrp delta doesn't fit in the imm field");
-
-        const auto delta_masked = uint64_t(delta2 & ((uint32_t(1) << 21) - 1));
-
-        instructions[fixup.location] |= (delta_masked & 0b11) << 29;
-        instructions[fixup.location] |= (delta_masked >> 2) << 5;
-        skip = true;
-
-        break;
-      }
-
-      default: {
-        A64_ASM_ASSERT(false, "unknown fixup type");
-      }
-    }
-
-    const auto delta = int64_t(target) - int64_t(fixup.location);
-
-    if (!skip) {
-      A64_ASM_ASSERT(fits_within_bits_signed(delta, size),
-                     "cannot process fixup: delta doesn't fit in the imm field");
-      instructions[fixup.location] |= uint64_t(delta & ((uint32_t(1) << size) - 1)) << shift;
-    }
-  }
-
-  fixups.clear();
-}
-
-std::span<const uint32_t> Assembler::assembled_instructions() const {
+std::span<const uint32_t> Assembler::assembled_instructions() {
+  apply_fixups();
   return instructions;
 }

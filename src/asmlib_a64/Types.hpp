@@ -95,6 +95,9 @@ enum class Condition {
   Greater,
   LessEqual,
   Always,
+
+  Zero = Equal,
+  NotZero = NotEqual,
 };
 
 enum class Writeback {

@@ -107,7 +107,7 @@
 [[nodiscard]] Status try_bl(Label label);
 [[nodiscard]] Status try_blr(Reg rn);
 [[nodiscard]] Status try_br(Reg rn);
-[[nodiscard]] Status try_ret(Reg rn);
+[[nodiscard]] Status try_ret(Reg rn = Reg::X30);
 [[nodiscard]] Status try_svc(uint16_t imm);
 [[nodiscard]] Status try_brk(uint16_t imm);
 
@@ -548,7 +548,7 @@ void br(Reg rn) {
   const auto status = try_br(rn);
   assert_instruction_encoded("br", status);
 }
-void ret(Reg rn) {
+void ret(Reg rn = Reg::X30) {
   const auto status = try_ret(rn);
   assert_instruction_encoded("ret", status);
 }
