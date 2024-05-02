@@ -46,6 +46,7 @@ static const char* status_code_description(Status::Code code) {
     case C::ShiftTypeInvalid: return "shift type is invalid";
     case C::BitmaskInvalid: return "bitmask is invalid";
     case C::BitmaskInvalidFor32Bit: return "bitmask is invalid for 32 bit operation";
+    case C::InvalidWriteback: return "register combination is invalid for writeback";
     default: {
       A64_ASM_ASSERT(false, "unknown status code");
     }
@@ -526,6 +527,7 @@ Status Assembler::encode_mem_imm_writeback(Register rt,
   A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt));
   A64_ASM_CHECK(SImmTooLarge, fits_within_bits_signed(imm, 9));
+  A64_ASM_CHECK(InvalidWriteback, rt == rn);
 
   const auto rti = register_index(rt);
   const auto rni = register_index(rn);
@@ -608,6 +610,7 @@ Status Assembler::encode_mem_pair(Register rt1,
   A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
   A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rt1) && !is_register_sp(rt2));
   A64_ASM_CHECK(RegistersMismatched, is_register_64bit(rt1) == is_register_64bit(rt2));
+  A64_ASM_CHECK(InvalidWriteback, !(writeback != Writeback::None && (rt1 == rn || rt2 == rn)));
 
   const auto rt1i = register_index(rt1);
   const auto rt2i = register_index(rt2);
@@ -1251,6 +1254,64 @@ Status Assembler::try_svc(uint16_t imm) {
 }
 Status Assembler::try_brk(uint16_t imm) {
   emit((uint32_t(0b11010100001) << 21) | (uint32_t(imm) << 5));
+  return {};
+}
+
+Status Assembler::try_macro_mov(Register rd, int64_t imm) {
+  A64_ASM_CHECK(Non64bitOperandForbidden, is_register_64bit(rd));
+
+  // Check for edge cases.
+  if (imm == 0) {
+    return try_movz(rd, 0);
+  }
+  if (imm == -1) {
+    return try_movn(rd, 0);
+  }
+
+  // Try using bitwise immediate.
+  if (try_orr(rd, to_zero(rd), imm)) {
+    return {};
+  }
+
+  const auto uimm = uint64_t(imm);
+
+  uint32_t zero_chunks = 0;
+  uint32_t one_chunks = 0;
+
+  for (size_t i = 0; i < 4; ++i) {
+    const auto chunk = (uimm >> (i * 16)) & 0xffff;
+    if (chunk == 0xffff) {
+      one_chunks++;
+    } else if (chunk == 0x0000) {
+      zero_chunks++;
+    }
+  }
+
+  const auto negate = one_chunks > zero_chunks;
+  const uint64_t empty_chunk = negate ? 0xffff : 0x0000;
+
+  bool first = true;
+
+  for (size_t i = 0; i < 4; ++i) {
+    const auto shift = i * 16;
+    const auto chunk = (uimm >> shift) & 0xffff;
+    if (chunk == empty_chunk) {
+      continue;
+    }
+
+    if (first) {
+      if (negate) {
+        movn(rd, ~chunk & 0xffff, shift);
+      } else {
+        movz(rd, chunk, shift);
+      }
+
+      first = false;
+    } else {
+      movk(rd, chunk, shift);
+    }
+  }
+
   return {};
 }
 

@@ -23,6 +23,7 @@ class Status {
     ShiftTypeInvalid,
     BitmaskInvalid,
     BitmaskInvalidFor32Bit,
+    InvalidWriteback,
   };
 
  private:

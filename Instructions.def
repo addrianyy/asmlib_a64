@@ -189,3 +189,5 @@ ret(Register rn = Register::X30)
 
 svc(uint16_t imm)
 brk(uint16_t imm)
+
+macro_mov(Register rd, int64_t imm)

@@ -110,6 +110,7 @@
 [[nodiscard]] Status try_ret(Register rn = Register::X30);
 [[nodiscard]] Status try_svc(uint16_t imm);
 [[nodiscard]] Status try_brk(uint16_t imm);
+[[nodiscard]] Status try_macro_mov(Register rd, int64_t imm);
 
 
 void add(Register rd, Register rn, uint64_t imm) {
@@ -559,4 +560,8 @@ void svc(uint16_t imm) {
 void brk(uint16_t imm) {
   const auto status = try_brk(imm);
   assert_instruction_encoded("brk", status);
+}
+void macro_mov(Register rd, int64_t imm) {
+  const auto status = try_macro_mov(rd, imm);
+  assert_instruction_encoded("macro_mov", status);
 }
