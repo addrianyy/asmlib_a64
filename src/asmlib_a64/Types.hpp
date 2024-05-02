@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace a64 {
 
@@ -117,5 +118,19 @@ enum class Scale {
   None,
   DataSize,
 };
+
+inline Register cast_to_32bit(Register reg) {
+  if (uint32_t(reg) >= uint32_t(Register::X0) && uint32_t(reg) <= uint32_t(Register::Sp)) {
+    return Register(uint32_t(reg) - uint32_t(Register::X0) + uint32_t(Register::W0));
+  }
+  return reg;
+}
+
+inline Register cast_to_64bit(Register reg) {
+  if (uint32_t(reg) >= uint32_t(Register::W0) && uint32_t(reg) <= uint32_t(Register::Wsp)) {
+    return Register(uint32_t(reg) - uint32_t(Register::W0) + uint32_t(Register::X0));
+  }
+  return reg;
+}
 
 }  // namespace a64
