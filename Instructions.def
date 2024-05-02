@@ -9,6 +9,11 @@
   cmn
 }
 
+@(Register rd, Register rn, int64_t imm) {
+  add_i
+  sub_i
+}
+
 @(Register rd, Register rn, uint64_t imm) {
   and_
   ands

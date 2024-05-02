@@ -99,6 +99,9 @@ enum class Condition {
 
   Zero = Equal,
   NotZero = NotEqual,
+
+  UnsignedGreaterEqual = CarrySet,
+  UnsignedLess = CarryClear,
 };
 
 enum class Writeback {
@@ -131,6 +134,10 @@ inline Register cast_to_64bit(Register reg) {
     return Register(uint32_t(reg) - uint32_t(Register::W0) + uint32_t(Register::X0));
   }
   return reg;
+}
+
+inline Condition invert_condition(Condition condition) {
+  return Condition(uint32_t(condition) ^ 1);
 }
 
 }  // namespace a64

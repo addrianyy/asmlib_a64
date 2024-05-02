@@ -202,7 +202,13 @@ Status Assembler::encode_add_sub_imm(Register rd,
   const auto is_64bit = is_register_64bit(rd);
 
   A64_ASM_CHECK(RegistersMismatched, is_64bit == is_register_64bit(rn));
-  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rd) && !is_register_zr(rn));
+  A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rn));
+
+  if (set_flags) {
+    A64_ASM_CHECK(SpOperandForbidden, !is_register_sp(rd));
+  } else {
+    A64_ASM_CHECK(ZrOperandForbidden, !is_register_zr(rd));
+  }
 
   const auto rdi = register_index(rd);
   const auto rni = register_index(rn);
@@ -805,6 +811,22 @@ Status Assembler::try_cmp(Register rn, uint64_t imm) {
 }
 Status Assembler::try_cmn(Register rn, uint64_t imm) {
   return try_adds(to_zero(rn), rn, imm);
+}
+
+Status Assembler::try_add_i(Register rd, Register rn, int64_t imm) {
+  if (imm < 0) {
+    return try_sub(rd, rn, uint64_t(-imm));
+  } else {
+    return try_add(rd, rn, uint64_t(imm));
+  }
+}
+
+Status Assembler::try_sub_i(Register rd, Register rn, int64_t imm) {
+  if (imm < 0) {
+    return try_add(rd, rn, uint64_t(-imm));
+  } else {
+    return try_sub(rd, rn, uint64_t(imm));
+  }
 }
 
 Status Assembler::try_and_(Register rd, Register rn, uint64_t imm) {

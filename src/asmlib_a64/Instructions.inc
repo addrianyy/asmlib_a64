@@ -4,6 +4,8 @@
 [[nodiscard]] Status try_subs(Register rd, Register rn, uint64_t imm);
 [[nodiscard]] Status try_cmp(Register rn, uint64_t imm);
 [[nodiscard]] Status try_cmn(Register rn, uint64_t imm);
+[[nodiscard]] Status try_add_i(Register rd, Register rn, int64_t imm);
+[[nodiscard]] Status try_sub_i(Register rd, Register rn, int64_t imm);
 [[nodiscard]] Status try_and_(Register rd, Register rn, uint64_t imm);
 [[nodiscard]] Status try_ands(Register rd, Register rn, uint64_t imm);
 [[nodiscard]] Status try_eor(Register rd, Register rn, uint64_t imm);
@@ -136,6 +138,14 @@ void cmp(Register rn, uint64_t imm) {
 void cmn(Register rn, uint64_t imm) {
   const auto status = try_cmn(rn, imm);
   assert_instruction_encoded("cmn", status);
+}
+void add_i(Register rd, Register rn, int64_t imm) {
+  const auto status = try_add_i(rd, rn, imm);
+  assert_instruction_encoded("add_i", status);
+}
+void sub_i(Register rd, Register rn, int64_t imm) {
+  const auto status = try_sub_i(rd, rn, imm);
+  assert_instruction_encoded("sub_i", status);
 }
 void and_(Register rd, Register rn, uint64_t imm) {
   const auto status = try_and_(rd, rn, imm);
