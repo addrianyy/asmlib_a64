@@ -162,6 +162,8 @@ class Assembler {
   void insert_label(Label label);
   Label insert_label();
 
+  bool is_label_inserted(Label label) const;
+
   std::span<const uint32_t> assembled_instructions();
 
   void clear();

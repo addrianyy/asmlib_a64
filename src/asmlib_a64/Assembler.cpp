@@ -1347,7 +1347,7 @@ Label Assembler::allocate_label() {
 }
 
 void Assembler::insert_label(Label label) {
-  A64_ASM_ASSERT(labels[label.index] == std::numeric_limits<uint64_t>::max(),
+  A64_ASM_ASSERT(!is_label_inserted(label),
                  "label was already inserted into the instruction stream");
   labels[label.index] = instructions.size();
 }
@@ -1356,6 +1356,10 @@ Label Assembler::insert_label() {
   const auto l = allocate_label();
   insert_label(l);
   return l;
+}
+
+bool Assembler::is_label_inserted(Label label) const {
+  return labels[label.index] != std::numeric_limits<uint64_t>::max();
 }
 
 std::span<const uint32_t> Assembler::assembled_instructions() {
