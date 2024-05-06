@@ -77,6 +77,12 @@ class Assembler {
   void emit_fixup(Label label, Fixup::Type type);
 
   Status encode_add_sub_imm(Register rd, Register rn, uint64_t imm, bool sub_op, bool set_flags);
+  Status encode_bitwise_imm(Register rd, Register rn, uint64_t imm, uint32_t opc);
+  Status encode_move_wide(Register rd, uint64_t imm, uint64_t shift, uint32_t opc);
+  Status encode_adr(Register rd, Label label, uint32_t op);
+  Status encode_bitfield_move(Register rd, Register rn, uint64_t immr, uint64_t imms, uint32_t opc);
+  Status encode_extr(Register rd, Register rn, Register rm, uint64_t lsb);
+
   Status encode_add_sub_shifted(Register rd,
                                 Register rn,
                                 Register rm,
@@ -84,7 +90,6 @@ class Assembler {
                                 Shift shift,
                                 bool sub_op,
                                 bool set_flags);
-  Status encode_bitwise_imm(Register rd, Register rn, uint64_t imm, uint32_t opc);
   Status encode_bitwise_shifted(Register rd,
                                 Register rn,
                                 Register rm,
@@ -92,12 +97,6 @@ class Assembler {
                                 Shift shift,
                                 uint32_t opc,
                                 bool invert);
-
-  Status encode_move_wide(Register rd, uint64_t imm, uint64_t shift, uint32_t opc);
-  Status encode_adr(Register rd, Label label, uint32_t op);
-  Status encode_bitfield_move(Register rd, Register rn, uint64_t immr, uint64_t imms, uint32_t opc);
-  Status encode_extr(Register rd, Register rn, Register rm, uint64_t lsb);
-
   Status encode_shift_reg(Register rd, Register rn, Register rm, uint32_t op2);
   Status encode_mul(Register rd, Register rn, Register rm, Register ra, uint32_t op);
   Status encode_div(Register rd, Register rn, Register rm, uint32_t op);

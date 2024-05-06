@@ -246,33 +246,6 @@ Status Assembler::encode_add_sub_imm(Register rd,
   return {};
 }
 
-Status Assembler::encode_add_sub_shifted(Register rd,
-                                         Register rn,
-                                         Register rm,
-                                         uint32_t shift_amount,
-                                         Shift shift,
-                                         bool sub_op,
-                                         bool set_flags) {
-  const auto is_64bit = is_register_64bit(rd);
-
-  A64_ASM_CHECK(RegistersMismatched,
-                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
-  A64_ASM_REQURIRE_ZR(rd, rn, rm);
-  A64_ASM_CHECK(ShiftTypeInvalid,
-                shift == Shift::Lsl || shift == Shift::Lsr || shift == Shift::Asr);
-  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(shift_amount, 6));
-
-  const auto rdi = register_index(rd);
-  const auto rni = register_index(rn);
-  const auto rmi = register_index(rm);
-
-  emit((uint32_t(is_64bit) << 31) | (uint32_t(sub_op) << 30) | (uint32_t(set_flags) << 29) |
-       (uint32_t(0b01011) << 24) | (uint32_t(shift) << 22) | (uint32_t(rmi) << 16) |
-       (uint32_t(shift_amount) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
-
-  return {};
-}
-
 Status Assembler::encode_bitwise_imm(Register rd, Register rn, uint64_t imm, uint32_t opc) {
   const auto is_64bit = is_register_64bit(rd);
 
@@ -300,31 +273,6 @@ Status Assembler::encode_bitwise_imm(Register rd, Register rn, uint64_t imm, uin
   emit((uint32_t(is_64bit) << 31) | (uint32_t(opc) << 29) | (uint32_t(0b100100) << 23) |
        (uint32_t(encoded_bitmask.n) << 22) | (uint32_t(encoded_bitmask.immr) << 16) |
        (uint32_t(encoded_bitmask.imms) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
-
-  return {};
-}
-
-Status Assembler::encode_bitwise_shifted(Register rd,
-                                         Register rn,
-                                         Register rm,
-                                         uint32_t shift_amount,
-                                         Shift shift,
-                                         uint32_t opc,
-                                         bool invert) {
-  const auto is_64bit = is_register_64bit(rd);
-
-  A64_ASM_CHECK(RegistersMismatched,
-                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
-  A64_ASM_REQURIRE_ZR(rd, rn, rm);
-  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(shift_amount, 6));
-
-  const auto rdi = register_index(rd);
-  const auto rni = register_index(rn);
-  const auto rmi = register_index(rm);
-
-  emit((uint32_t(is_64bit) << 31) | (uint32_t(opc) << 29) | (uint32_t(0b01010) << 24) |
-       (uint32_t(shift) << 22) | (uint32_t(invert) << 21) | (uint32_t(rmi) << 16) |
-       (uint32_t(shift_amount) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
 
   return {};
 }
@@ -403,6 +351,58 @@ Status Assembler::encode_extr(Register rd, Register rn, Register rm, uint64_t ls
   emit((uint32_t(is_64bit) << 31) | (uint32_t(0b100111) << 23) |
        (uint32_t(is_64bit << 22) | (uint32_t(rmi) << 16) | (uint32_t(lsb) << 10) |
         (uint32_t(rni) << 5) | (uint32_t(rdi) << 0)));
+
+  return {};
+}
+
+Status Assembler::encode_add_sub_shifted(Register rd,
+                                         Register rn,
+                                         Register rm,
+                                         uint32_t shift_amount,
+                                         Shift shift,
+                                         bool sub_op,
+                                         bool set_flags) {
+  const auto is_64bit = is_register_64bit(rd);
+
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_REQURIRE_ZR(rd, rn, rm);
+  A64_ASM_CHECK(ShiftTypeInvalid,
+                shift == Shift::Lsl || shift == Shift::Lsr || shift == Shift::Asr);
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(shift_amount, 6));
+
+  const auto rdi = register_index(rd);
+  const auto rni = register_index(rn);
+  const auto rmi = register_index(rm);
+
+  emit((uint32_t(is_64bit) << 31) | (uint32_t(sub_op) << 30) | (uint32_t(set_flags) << 29) |
+       (uint32_t(0b01011) << 24) | (uint32_t(shift) << 22) | (uint32_t(rmi) << 16) |
+       (uint32_t(shift_amount) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
+
+  return {};
+}
+
+Status Assembler::encode_bitwise_shifted(Register rd,
+                                         Register rn,
+                                         Register rm,
+                                         uint32_t shift_amount,
+                                         Shift shift,
+                                         uint32_t opc,
+                                         bool invert) {
+  const auto is_64bit = is_register_64bit(rd);
+
+  A64_ASM_CHECK(RegistersMismatched,
+                is_64bit == is_register_64bit(rn) && is_64bit == is_register_64bit(rm));
+  A64_ASM_REQURIRE_ZR(rd, rn, rm);
+  A64_ASM_CHECK(UImmTooLarge, fits_within_bits_unsigned(shift_amount, 6));
+
+  const auto rdi = register_index(rd);
+  const auto rni = register_index(rn);
+  const auto rmi = register_index(rm);
+
+  emit((uint32_t(is_64bit) << 31) | (uint32_t(opc) << 29) | (uint32_t(0b01010) << 24) |
+       (uint32_t(shift) << 22) | (uint32_t(invert) << 21) | (uint32_t(rmi) << 16) |
+       (uint32_t(shift_amount) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
 
   return {};
 }
