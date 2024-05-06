@@ -202,9 +202,9 @@ void Assembler::emit_fixup(Label label, Fixup::Type type) {
   A64_ASM_ASSERT(label.index != Label::invalid_index, "cannot refer to uninitialied label");
 
   fixups.push_back(Fixup{
-    .location = uint32_t(instructions.size()),
-    .label = label,
     .type = type,
+    .label = label,
+    .location = uint32_t(instructions.size()),
   });
 }
 
