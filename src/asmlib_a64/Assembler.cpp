@@ -348,9 +348,8 @@ Status Assembler::encode_extr(Register rd, Register rn, Register rm, uint64_t ls
   const auto rni = register_index(rn);
   const auto rmi = register_index(rm);
 
-  emit((uint32_t(is_64bit) << 31) | (uint32_t(0b100111) << 23) |
-       (uint32_t(is_64bit << 22) | (uint32_t(rmi) << 16) | (uint32_t(lsb) << 10) |
-        (uint32_t(rni) << 5) | (uint32_t(rdi) << 0)));
+  emit((uint32_t(is_64bit) << 31) | (uint32_t(0b100111) << 23) | (uint32_t(is_64bit << 22)) |
+       (uint32_t(rmi) << 16) | (uint32_t(lsb) << 10) | (uint32_t(rni) << 5) | (uint32_t(rdi) << 0));
 
   return {};
 }
