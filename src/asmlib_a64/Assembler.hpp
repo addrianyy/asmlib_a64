@@ -31,6 +31,7 @@ class Status {
 
  public:
   Status() = default;
+
   explicit Status(Code code) : code_(code) {}
 
   Code code() const { return code_; }
@@ -41,12 +42,16 @@ class Status {
 class Label {
   friend class Assembler;
 
-  uint64_t index;
+  constexpr static uint32_t invalid_index = std::numeric_limits<uint32_t>::max();
 
-  explicit Label(uint64_t index) : index(index) {}
+  uint32_t index{invalid_index};
+
+  explicit Label(uint32_t index) : index(index) {}
 
  public:
-  Label() : index(std::numeric_limits<uint64_t>::max()) {}
+  Label() = default;
+
+  operator bool() const { return index != invalid_index; }
 };
 
 class Assembler {
@@ -59,13 +64,13 @@ class Assembler {
       Bcond_Cb_Ldr,
     };
 
-    Type type;
-    uint64_t label;
-    uint64_t location;
+    Type type{};
+    Label label;
+    uint32_t location{};
   };
 
   std::vector<uint32_t> instructions;
-  std::vector<uint64_t> labels;
+  std::vector<uint32_t> labels;
   std::vector<Fixup> fixups;
 
   void emit(uint32_t instruction);
@@ -150,6 +155,7 @@ class Assembler {
 
   void assert_instruction_encoded(const char* instruction_name, Status status);
 
+  void apply_fixup(const Fixup& fixup);
   void apply_fixups();
 
  public:
