@@ -44,7 +44,6 @@ class Label {
   friend class Assembler;
 
   constexpr static uint32_t invalid_index = std::numeric_limits<uint32_t>::max();
-
   uint32_t index{invalid_index};
 
   explicit Label(uint32_t index) : index(index) {}
