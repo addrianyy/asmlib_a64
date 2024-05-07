@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace a64 {
+namespace asmlib::a64 {
 
 enum class Register {
   X0,
@@ -140,4 +140,4 @@ inline Condition invert_condition(Condition condition) {
   return Condition(uint32_t(condition) ^ 1);
 }
 
-}  // namespace a64
+}  // namespace asmlib::a64

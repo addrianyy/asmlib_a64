@@ -1,6 +1,8 @@
 # AArch64 assembler library in C++20
 
 ```cpp
+using namespace asmlib;
+
 using a64::Register;
 
 a64::Assembler as;

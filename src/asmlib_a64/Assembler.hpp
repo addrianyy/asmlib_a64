@@ -6,7 +6,7 @@
 
 #include "Types.hpp"
 
-namespace a64 {
+namespace asmlib::a64 {
 
 class Status {
  public:
@@ -175,4 +175,4 @@ class Assembler {
   void clear();
 };
 
-}  // namespace a64
+}  // namespace asmlib::a64

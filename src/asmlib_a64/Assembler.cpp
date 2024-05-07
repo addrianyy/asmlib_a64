@@ -29,7 +29,7 @@
 #define A64_ASM_REQURIRE_ZR(...) A64_ASM_CHECK(SpOperandForbidden, !is_any_register_sp(__VA_ARGS__))
 #define A64_ASM_REQURIRE_SP(...) A64_ASM_CHECK(ZrOperandForbidden, !is_any_register_zr(__VA_ARGS__))
 
-using namespace a64;
+using namespace asmlib::a64;
 
 static const char* status_code_description(Status::Code code) {
   using C = Status::Code;
